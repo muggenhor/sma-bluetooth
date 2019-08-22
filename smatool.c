@@ -276,15 +276,13 @@ void
 tryfcs16(FlagType * flag, unsigned char *cp, int len, unsigned char *fl, int * cc)
 {
     u16 trialfcs;
-    unsigned
-    int i;	 
     unsigned char stripped[1024] = { 0 };
 
     memcpy( stripped, cp, len );
     /* add on output */
     if (flag->debug ==2){
  	printf("String to calculate FCS\n");	 
-        	for (i=0;i<len;i++) printf("%02x ",cp[i]);
+        	for (int i=0;i<len;i++) printf("%02x ",cp[i]);
 	 	printf("\n\n");
     }	
     trialfcs = pppfcs16( PPPINITFCS16, stripped, len );
@@ -348,7 +346,7 @@ unsigned char conv(char *nn)
 int
 check_send_error( FlagType * flag, int *s, int *rr, unsigned char *received, int cc, unsigned char *last_sent, int *terminated, int *already_read )
 {
-    int bytes_read,i,j;
+    int bytes_read,j;
     unsigned char buf[1024]; /*read buffer*/
     unsigned char header[3]; /*read buffer*/
     struct timeval tv;
@@ -368,7 +366,7 @@ check_send_error( FlagType * flag, int *s, int *rr, unsigned char *received, int
     if (FD_ISSET((*s), &readfds)){	// did we receive anything within 5 seconds
         bytes_read = recv((*s), header, sizeof(header), 0); //Get length of string
 	(*rr) = 0;
-        for( i=0; i<sizeof(header); i++ ) {
+        for (size_t i = 0; i < sizeof(header); i++) {
             received[(*rr)] = header[i];
 	    if (flag->debug == 1) printf("%02x ", received[(*rr)]);
             (*rr)++;
@@ -396,13 +394,13 @@ check_send_error( FlagType * flag, int *s, int *rr, unsigned char *received, int
            printf("\nReceiving\n");
            printf( "    %08x: .. .. .. .. .. .. .. .. .. .. .. .. ", 0 );
            j=12;
-           for( i=0; i<sizeof(header); i++ ) {
+           for (size_t i = 0; i < sizeof(header); i++) {
               if( j%16== 0 )
                  printf( "\n    %08x: ",j);
               printf("%02x ",header[i]);
               j++;
            }
-	   for (i=0;i<bytes_read;i++) {
+	   for (int i = 0; i < bytes_read; i++) {
               if( j%16== 0 )
                  printf( "\n    %08x: ",j);
               printf("%02x ",buf[i]);
@@ -419,7 +417,7 @@ check_send_error( FlagType * flag, int *s, int *rr, unsigned char *received, int
            (*terminated) = 1;
         else
            (*terminated) = 0;
-        for (i=0;i<bytes_read;i++){ //start copy the rec buffer in to received
+        for (int i = 0; i < bytes_read; i++) { //start copy the rec buffer in to received
             if (buf[i] == 0x7d){ //did we receive the escape char
 	        switch (buf[i+1]){   // act depending on the char after the escape char
 					
@@ -446,7 +444,7 @@ check_send_error( FlagType * flag, int *s, int *rr, unsigned char *received, int
         fix_length_received( flag, received, rr );
 	if (flag->debug == 1) {
 	    printf("\n");
-            for( i=0;i<(*rr); i++ ) printf("%02x ", received[(i)]);
+            for (int i = 0; i < *rr; i++) printf("%02x ", received[(i)]);
         }
 	if (flag->debug == 1) printf("\n\n");
         (*already_read)=1;
@@ -457,7 +455,7 @@ check_send_error( FlagType * flag, int *s, int *rr, unsigned char *received, int
 int empty_read_bluetooth(FlagType* flag, ReadRecordType* readRecord, int* s, int* rr, unsigned char* received,
                          int* terminated)
 {
-    int bytes_read,i,j, last_decoded;
+    int bytes_read,j, last_decoded;
     unsigned char buf[1024]; /*read buffer*/
     unsigned char header[4]; /*read buffer*/
     struct timeval tv;
@@ -480,7 +478,7 @@ int empty_read_bluetooth(FlagType* flag, ReadRecordType* readRecord, int* s, int
     if (FD_ISSET((*s), &readfds)){	// did we receive anything within 5 seconds
         bytes_read = recv((*s), header, sizeof(header), 0); //Get length of string
 	(*rr) = 0;
-        for( i=0; i<sizeof(header); i++ ) {
+        for (size_t i = 0; i < sizeof(header); i++) {
             received[(*rr)] = header[i];
 	    if (flag->debug == 2) printf("%02x ", received[i]);
             (*rr)++;
@@ -538,21 +536,21 @@ int empty_read_bluetooth(FlagType* flag, ReadRecordType* readRecord, int* s, int
            printf("                      checkbit:          %d", header[3] );
            printf("\n   " );
            //Source Address
-           for( i=0; i<bytes_read; i++ ) {
+           for (int i = 0; i < bytes_read; i++) {
               if( i > 5 ) break;
               printf("%02x ",buf[i]);
            }
            printf("       source:            %02x:%02x:%02x:%02x:%02x:%02x", buf[5], buf[4], buf[3], buf[2], buf[1], buf[0] );
            printf("\n   " );
            //Destination Address
-           for( i=6; i<bytes_read; i++ ) {
+           for (int i = 6; i < bytes_read; i++) {
               if( i > 11 ) break;
               printf("%02x ",buf[i]);
            }
            printf("       destination:       %02x:%02x:%02x:%02x:%02x:%02x", buf[11], buf[10], buf[9], buf[8], buf[7], buf[6] );
            printf("\n   " );
            //Destination Address
-           for( i=12; i<bytes_read; i++ ) {
+           for (int i = 12; i < bytes_read; i++) {
               if( i > 13 ) break;
               printf("%02x ",buf[i]);
            }
@@ -563,37 +561,37 @@ int empty_read_bluetooth(FlagType* flag, ReadRecordType* readRecord, int* s, int
            last_decoded=14;
            if( memcmp( buf+14, "\x7e\xff\x03\x60\x65", 5 ) == 0 ){
                printf("\n");
-               for( i=14; i<bytes_read; i++ ) {
+               for (int i = 14; i < bytes_read; i++) {
                    if( i > 18 ) break;
                    printf("%02x ",buf[i]);
                }
                printf("             SMA Data2+ header: %02x:%02x:%02x:%02x:%02x", buf[18], buf[17], buf[16], buf[15], buf[14] );
                printf("\n   " );
-               for( i=19; i<bytes_read; i++ ) {
+               for (int  i = 19; i < bytes_read; i++) {
                    if( i > 19 ) break;
                    printf("%02x ",buf[i]);
                }
                printf("                      data packet size:  %02d", buf[19] );
                printf("\n   " );
-               for( i=20; i<bytes_read; i++ ) {
+               for (int i = 20; i < bytes_read; i++) {
                    if( i > 20 ) break;
                    printf("%02x ",buf[i]);
                }
                printf("                      control:           %02x", buf[20] );
                printf("\n   " );
-               for( i=21; i<bytes_read; i++ ) {
+               for (int i = 21; i < bytes_read; i++) {
                    if( i > 26 ) break;
                    printf("%02x ",buf[i]);
                }
                printf("       source:            %02x %02x:%02x:%02x:%02x:%02x", buf[21], buf[26], buf[25], buf[24], buf[23], buf[22] );
                printf("\n   " );
-               for( i=27; i<bytes_read; i++ ) {
+               for (int i = 27; i < bytes_read; i++) {
                    if( i > 28 ) break;
                    printf("%02x ",buf[i]);
                }
                printf("                   read status:       %02x %02x", buf[28], buf[27] );
                printf("\n   " );
-               for( i=29; i<bytes_read; i++ ) {
+               for (int i = 29; i < bytes_read; i++) {
                    if( i > 30 ) break;
                    printf("%02x ",buf[i]);
                }
@@ -601,7 +599,7 @@ int empty_read_bluetooth(FlagType* flag, ReadRecordType* readRecord, int* s, int
                readRecord->Status[1]=buf[27];
                printf("                   count up:          %02d %02x:%02x", buf[29]+buf[30]*256, buf[30], buf[29] );
                printf("\n   " );
-               for( i=31; i<bytes_read; i++ ) {
+               for (int i = 31; i < bytes_read; i++) {
                    if( i > 32 ) break;
                    printf("%02x ",buf[i]);
                }
@@ -611,7 +609,7 @@ int empty_read_bluetooth(FlagType* flag, ReadRecordType* readRecord, int* s, int
            }
            printf("\n   " );
            j=0;
-	   for (i=last_decoded;i<bytes_read;i++) {
+	   for (int i = last_decoded; i < bytes_read; i++) {
               if( j%16== 0 )
                  printf( "\n   %08x: ",j);
               printf("%02x ",buf[i]);
@@ -631,7 +629,7 @@ int empty_read_bluetooth(FlagType* flag, ReadRecordType* readRecord, int* s, int
 int
 read_bluetooth( ConfType * conf, FlagType * flag, ReadRecordType * readRecord, int *s, int *rr, unsigned char *received, int cc, unsigned char *last_sent, int *terminated )
 {
-    int bytes_read,i,j, last_decoded;
+    int bytes_read,j, last_decoded;
     unsigned char buf[1024]; /*read buffer*/
     unsigned char header[4]; /*read buffer*/
     unsigned char checkbit;
@@ -656,7 +654,7 @@ read_bluetooth( ConfType * conf, FlagType * flag, ReadRecordType * readRecord, i
     if (FD_ISSET((*s), &readfds)){	// did we receive anything within 5 seconds
         bytes_read = recv((*s), header, sizeof(header), 0); //Get length of string
 	(*rr) = 0;
-        for( i=0; i<sizeof(header); i++ ) {
+        for (size_t i = 0; i < sizeof(header); i++) {
             received[(*rr)] = header[i];
 	    if (flag->debug == 2) printf("%02x ", received[i]);
             (*rr)++;
@@ -697,21 +695,21 @@ read_bluetooth( ConfType * conf, FlagType * flag, ReadRecordType * readRecord, i
            printf("                      checkbit:          %d", header[3] );
            printf("\n   " );
            //Source Address
-           for( i=0; i<bytes_read; i++ ) {
+           for (int i = 0; i < bytes_read; i++) {
               if( i > 5 ) break;
               printf("%02x ",buf[i]);
            }
            printf("       source:            %02x:%02x:%02x:%02x:%02x:%02x", buf[5], buf[4], buf[3], buf[2], buf[1], buf[0] );
            printf("\n   " );
            //Destination Address
-           for( i=6; i<bytes_read; i++ ) {
+           for (int i = 6; i < bytes_read; i++) {
               if( i > 11 ) break;
               printf("%02x ",buf[i]);
            }
            printf("       destination:       %02x:%02x:%02x:%02x:%02x:%02x", buf[11], buf[10], buf[9], buf[8], buf[7], buf[6] );
            printf("\n   " );
            //Destination Address
-           for( i=12; i<bytes_read; i++ ) {
+           for (int i = 12; i < bytes_read; i++) {
               if( i > 13 ) break;
               printf("%02x ",buf[i]);
            }
@@ -722,37 +720,37 @@ read_bluetooth( ConfType * conf, FlagType * flag, ReadRecordType * readRecord, i
            last_decoded=14;
            if( memcmp( buf+14, "\x7e\xff\x03\x60\x65", 5 ) == 0 ){
                printf("\n");
-               for( i=14; i<bytes_read; i++ ) {
+               for (int i = 14; i < bytes_read; i++) {
                    if( i > 18 ) break;
                    printf("%02x ",buf[i]);
                }
                printf("             SMA Data2+ header: %02x:%02x:%02x:%02x:%02x", buf[18], buf[17], buf[16], buf[15], buf[14] );
                printf("\n   " );
-               for( i=19; i<bytes_read; i++ ) {
+               for (int i = 19; i < bytes_read; i++) {
                    if( i > 19 ) break;
                    printf("%02x ",buf[i]);
                }
                printf("                      data packet size:  %02d", buf[19] );
                printf("\n   " );
-               for( i=20; i<bytes_read; i++ ) {
+               for (int i = 20; i < bytes_read; i++) {
                    if( i > 20 ) break;
                    printf("%02x ",buf[i]);
                }
                printf("                      control:           %02x", buf[20] );
                printf("\n   " );
-               for( i=21; i<bytes_read; i++ ) {
+               for (int i = 21; i < bytes_read; i++) {
                    if( i > 26 ) break;
                    printf("%02x ",buf[i]);
                }
                printf("       source:            %02x %02x:%02x:%02x:%02x:%02x", buf[21], buf[26], buf[25], buf[24], buf[23], buf[22] );
                printf("\n   " );
-               for( i=27; i<bytes_read; i++ ) {
+               for (int i = 27; i < bytes_read; i++) {
                    if( i > 28 ) break;
                    printf("%02x ",buf[i]);
                }
                printf("                   read status:       %02x %02x", buf[28], buf[27] );
                printf("\n   " );
-               for( i=29; i<bytes_read; i++ ) {
+               for (int i = 29; i < bytes_read; i++) {
                    if( i > 30 ) break;
                    printf("%02x ",buf[i]);
                }
@@ -760,7 +758,7 @@ read_bluetooth( ConfType * conf, FlagType * flag, ReadRecordType * readRecord, i
                readRecord->Status[1]=buf[27];
                printf("                   count up:          %02d %02x:%02x", buf[29]+buf[30]*256, buf[30], buf[29] );
                printf("\n   " );
-               for( i=31; i<bytes_read; i++ ) {
+               for (int i = 31; i < bytes_read; i++) {
                    if( i > 32 ) break;
                    printf("%02x ",buf[i]);
                }
@@ -770,7 +768,7 @@ read_bluetooth( ConfType * conf, FlagType * flag, ReadRecordType * readRecord, i
            }
            printf("\n   " );
            j=0;
-	   for (i=last_decoded;i<bytes_read;i++) {
+	   for (int i = last_decoded; i < bytes_read; i++) {
               if( j%16== 0 )
                  printf( "\n   %08x: ",j);
               printf("%02x ",buf[i]);
@@ -799,7 +797,7 @@ read_bluetooth( ConfType * conf, FlagType * flag, ReadRecordType * readRecord, i
            (*terminated) = 1;
         else
            (*terminated) = 0;
-        for (i=0;i<bytes_read;i++){ //start copy the rec buffer in to received
+        for (int i = 0; i < bytes_read; i++){ //start copy the rec buffer in to received
             if (buf[i] == 0x7d){ //did we receive the escape char
 	        switch (buf[i+1]){   // act depending on the char after the escape char
 					
@@ -826,7 +824,7 @@ read_bluetooth( ConfType * conf, FlagType * flag, ReadRecordType * readRecord, i
         fix_length_received( flag, received, rr );
 	if (flag->debug == 2) {
 	    printf("\n");
-            for( i=0;i<(*rr); i++ ) printf("%02x ", received[(i)]);
+            for (int i = 0; i < *rr; i++) printf("%02x ", received[(i)]);
         }
 	if (flag->debug == 1) printf("\n\n");
     }	
@@ -835,8 +833,7 @@ read_bluetooth( ConfType * conf, FlagType * flag, ReadRecordType * readRecord, i
 
 int select_str(char *s)
 {
-    int i;
-    for (i=0; i < sizeof(accepted_strings)/sizeof(*accepted_strings);i++)
+    for (size_t i = 0; i < sizeof(accepted_strings) / sizeof(*accepted_strings); i++)
     {
        //printf( "\ni=%d accepted=%s string=%s", i, accepted_strings[i], s );
        if (!strcmp(s, accepted_strings[i])) return i;

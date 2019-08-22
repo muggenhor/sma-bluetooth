@@ -671,7 +671,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
                                 idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second );
                                 ConvertStreamtoFloat( data+i+8, 3, &currentpower_total );
                                 return_key=-1;
-                                for( j=0; j<conf->num_return_keys; j++ )
+                                for (unsigned int j = 0; j < conf->num_return_keys; j++)
                                 {
                                     if(( (data+i+1)[0] == conf->returnkeylist[j].key1 )&&((data+i+2)[0] == conf->returnkeylist[j].key2)) {
                                         return_key=j;
@@ -874,7 +874,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
                                        idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second  );
                                        ConvertStreamtoFloat( data+i+8, 3, &currentpower_total );
                                        return_key=-1;
-                                       for( j=0; j<conf->num_return_keys; j++ )
+                                       for (unsigned int j = 0; j < conf->num_return_keys; j++)
                                        {
                                           if(( (data+i+1)[0] == conf->returnkeylist[j].key1 )&&((data+i+2)[0] == conf->returnkeylist[j].key2)) {
                                               return_key=j;
@@ -901,7 +901,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
                                 {
                                     int gap = 0;
                                     return_key=-1;
-                                    for( j=0; j<conf->num_return_keys; j++ )
+                                    for (unsigned int j = 0; j < conf->num_return_keys; j++)
                                     {
                                        if(( (data+1)[0] == conf->returnkeylist[j].key1 )&&((data+2)[0] == conf->returnkeylist[j].key2)) {
                                           return_key=j;
@@ -920,7 +920,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
                                     {
                                        idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second  );
                                        return_key=-1;
-                                       for( j=0; j<conf->num_return_keys; j++ )
+                                       for (unsigned int j = 0; j < conf->num_return_keys; j++)
                                        {
                                           if(( (data+i+1)[0] == conf->returnkeylist[j].key1 )&&((data+i+2)[0] == conf->returnkeylist[j].key2)) {
                                               return_key=j;
