@@ -1,11 +1,11 @@
 ARCH := $(shell getconf LONG_BIT)
 CPPFLAGS := -I/usr/include/libxml2
-CFLAGS := -g3 -O3 -Wall -Wextra -Werror -Wno-unused-result
+CFLAGS := -fstack-protector-all -g3 -O3 -Wall -Wextra -Werror -Wno-unused-result
 
 all: smatool
 
-smatool: smatool.o repost.o sma_mysql.o almanac.o sb_commands.o sma_struct.h
-	gcc smatool.o repost.o sma_mysql.o almanac.o sb_commands.o -fstack-protector-all -O2 -Wall -lxml2 -lmysqlclient -lbluetooth -lcurl -lm -o smatool 
+smatool: smatool.o repost.o sma_mysql.o almanac.o sb_commands.o
+	gcc $^ -lxml2 -lmysqlclient -lbluetooth -lcurl -lm -o $@ 
 
 %.o: %.c
 	gcc $(CPPFLAGS) $(CFLAGS) -c $< -o $@
