@@ -13,6 +13,7 @@
 #include "sma_mysql.hpp"
 #include "smatool.hpp"
 #include <unistd.h>
+#include <fmt/printf.h>
 
 static int GetLine(const char* command, FILE* fp);
 
@@ -36,7 +37,7 @@ int ConnectSocket(const ConfType* conf)
             // connect to server
       	    status = connect((s), (struct sockaddr *)&addr, sizeof(addr));
       	    if (status <0){
-                printf("Error connecting to %s\n", conf->BTAddress);
+                fmt::printf("Error connecting to %s\n", conf->BTAddress);
                 close( (s) );
       	    }
             else
@@ -88,7 +89,7 @@ static int UpdateLiveList(const FlagType* flag, const UnitType* unit, const char
     }
     else
     {
-       if (flag->debug == 1) printf("Don't have inverter details yet\n");
+       if (flag->debug == 1) fmt::printf("Don't have inverter details yet\n");
     }
     return 0;
 }
@@ -125,7 +126,6 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
    char	BTAddressBuf[20];
    char tt[10] = {48,48,48,48,48,48,48,48,48,48}; 
    char ti[3];	
-   char *datastring;
    float currentpower_total;
    float dtotal;
    float gtotal;
@@ -133,13 +133,10 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
    float strength;
    int   found, already_read, terminated;
    int   return_key, datalength=0;
-   int   crc_at_end;
    int	 pass_i, send_count = 0;
    int	 persistent;
    int index;
    unsigned long long inverter_serial;
-   char	valuebuf[30];
-
 
    //convert address
    strncpy( BTAddressBuf, conf->BTAddress, 20);
@@ -156,16 +153,16 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
    	(*linenum)++;
    	last_sent = (unsigned  char *)malloc( sizeof( unsigned char ));
    	if ( last_sent == NULL ) {
-       	    printf( "\nOut of memory\n" );
+       	    fmt::printf( "\nOut of memory\n" );
             return( -1 );
    	}
    	lineread = strtok(line," ;");
    	if( lineread[0] == ':'){		//See if line is something we need to receive
-       	    if( flag->debug == 1 ) printf( "\nCommand line we have finished%s\n", line ); 
+       	    if( flag->debug == 1 ) fmt::printf( "\nCommand line we have finished%s\n", line ); 
             break;
         }
    	if(!strcmp(lineread,"R")){		//See if line is something we need to receive
-       if (flag->debug == 1) printf("[%d] %s Waiting for string\n",(*linenum), debugdate() );
+       if (flag->debug == 1) fmt::printf("[%d] %s Waiting for string\n",(*linenum), debugdate() );
        cc = 0;
        do{
 	   lineread = strtok(NULL," ;");
@@ -204,11 +201,11 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
         } 
         while (strcmp(lineread,"$END"));
 	if (flag->debug == 1){ 
-	    printf("[%d] %s waiting for: ", (*linenum), debugdate() );
-	    for (i=0;i<cc;i++) printf("%02x ",fl[i]);
-	    printf("\n\n");
+	    fmt::printf("[%d] %s waiting for: ", (*linenum), debugdate() );
+	    for (i=0;i<cc;i++) fmt::printf("%02x ",fl[i]);
+	    fmt::printf("\n\n");
 	}
-	if (flag->debug == 1) printf("[%d] %s Waiting for data on rfcomm\n", (*linenum), debugdate());
+	if (flag->debug == 1) fmt::printf("[%d] %s Waiting for data on rfcomm\n", (*linenum), debugdate());
 	found = 0;
 	do {
             if( already_read == 0 )
@@ -227,31 +224,31 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                 already_read=0;
                             
 	        if (flag->debug == 1){ 
-                    printf( "[%d] %s looking for: ",(*linenum), debugdate());
-		    for (i=0;i<cc;i++) printf("%02x ",fl[i]);
-                    printf( "\n" );
-                    printf( "[%d] %s received:    ",(*linenum), debugdate());
-		    for (i=0;i<rr;i++) printf("%02x ",received[i]);
-		    printf("\n\n");
+                    fmt::printf( "[%d] %s looking for: ",(*linenum), debugdate());
+		    for (i=0;i<cc;i++) fmt::printf("%02x ",fl[i]);
+                    fmt::printf( "\n" );
+                    fmt::printf( "[%d] %s received:    ",(*linenum), debugdate());
+		    for (i=0;i<rr;i++) fmt::printf("%02x ",received[i]);
+		    fmt::printf("\n\n");
 		}
                            
 		if (memcmp(fl+4,received+4,cc-4) == 0){
 		    found = 1;
-		    if (flag->debug == 1) printf("[%d] %s Found string we are waiting for\n",(*linenum), debugdate()); 
+		    if (flag->debug == 1) fmt::printf("[%d] %s Found string we are waiting for\n",(*linenum), debugdate()); 
 		} else {
-		    if (flag->debug == 1) printf("[%d] %s Did not find string\n", (*linenum),debugdate()); 
+		    if (flag->debug == 1) fmt::printf("[%d] %s Did not find string\n", (*linenum),debugdate()); 
 		}
             }
 	} while (found == 0);
 	if (flag->debug == 2){ 
-	    for (i=0;i<cc;i++) printf("%02x ",fl[i]);
-	    printf("\n\n");
+	    for (i=0;i<cc;i++) fmt::printf("%02x ",fl[i]);
+	    fmt::printf("\n\n");
 	}
     }
     if(!strcmp(lineread,"S")){		//See if line is something we need to send
         //Empty the receive data ready for new command
         while( ((*linenum)>22)&& empty_read_bluetooth(flag, &readRecord, s, &rr, received, &terminated) >= 0);
-	if (flag->debug	== 1) printf("[%d] %s Sending\n", (*linenum),debugdate());
+	if (flag->debug	== 1) fmt::printf("[%d] %s Sending\n", (*linenum),debugdate());
 	cc = 0;
 	do{
             lineread = strtok(NULL," ;");
@@ -337,23 +334,23 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                 if( flag->daterange == 1 ) {
                     if( strptime( conf->datefrom, "%Y-%m-%d %H:%M:%S", &tm) == 0 ) 
                     {
-                        if( flag->debug==1 ) printf( "datefrom %s\n", conf->datefrom );
-                        printf( "Time Coversion Error\n" );
+                        if( flag->debug==1 ) fmt::printf( "datefrom %s\n", conf->datefrom );
+                        fmt::printf( "Time Coversion Error\n" );
                         exit(-1);
                     }
                     tm.tm_isdst=-1;
                     fromtime=mktime(&tm);
                     if( fromtime == -1 ) {
                         // Error we need to do something about it
-                        printf( "%03x",(int)fromtime ); getchar();
-                        printf( "\n%03x", (int)fromtime ); getchar();
+                        fmt::printf( "%03x",(int)fromtime ); getchar();
+                        fmt::printf( "\n%03x", (int)fromtime ); getchar();
                         fromtime=0;
-                        printf( "bad from" ); getchar();
+                        fmt::printf( "bad from" ); getchar();
                     }
                 }
                 else
                 {
-                    printf( "no from" ); getchar();
+                    fmt::printf( "no from" ); getchar();
                     fromtime=0;
                 }
 		sprintf(tt,"%03x",(int)fromtime-300); //convert to a hex in a string and start 5 mins before for dummy read.
@@ -370,18 +367,18 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                 if( flag->daterange == 1 ) {
                     if( strptime( conf->dateto, "%Y-%m-%d %H:%M:%S", &tm) == 0 ) 
                     {
-                        if( flag->debug==1 ) printf( "dateto %s\n", conf->dateto );
-                        printf( "Time Coversion Error\n" );
+                        if( flag->debug==1 ) fmt::printf( "dateto %s\n", conf->dateto );
+                        fmt::printf( "Time Coversion Error\n" );
                         exit(-1);
                     }
                     tm.tm_isdst=-1;
                     totime=mktime(&tm);
                     if( totime == -1 ) {
                         // Error we need to do something about it
-                        printf( "%03x",(int)totime ); getchar();
-                        printf( "\n%03x", (int)totime ); getchar();
+                        fmt::printf( "%03x",(int)totime ); getchar();
+                        fmt::printf( "\n%03x", (int)totime ); getchar();
                         totime=0;
-                        printf( "bad to" ); getchar();
+                        fmt::printf( "bad to" ); getchar();
                     }
                 }
                 else
@@ -404,15 +401,15 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                     fromtime=mktime(&tm)-86400;
                     if( fromtime == -1 ) {
                         // Error we need to do something about it
-                        printf( "%03x",(int)fromtime ); getchar();
-                        printf( "\n%03x", (int)fromtime ); getchar();
+                        fmt::printf( "%03x",(int)fromtime ); getchar();
+                        fmt::printf( "\n%03x", (int)fromtime ); getchar();
                         fromtime=0;
-                        printf( "bad from" ); getchar();
+                        fmt::printf( "bad from" ); getchar();
                     }
                 }
                 else
                 {
-                    printf( "no from" ); getchar();
+                    fmt::printf( "no from" ); getchar();
                     fromtime=0;
                 }
 		sprintf(tt,"%03x",(int)fromtime); //convert to a hex in a string
@@ -433,10 +430,10 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                     totime=mktime(&tm)-86400;
                     if( totime == -1 ) {
                          // Error we need to do something about it
-                         printf( "%03x",(int)totime ); getchar();
-                         printf( "\n%03x", (int)totime ); getchar();
+                         fmt::printf( "%03x",(int)totime ); getchar();
+                         fmt::printf( "\n%03x", (int)totime ); getchar();
                          fromtime=0;
-                         printf( "bad from" ); getchar();
+                         fmt::printf( "bad from" ); getchar();
                     }
                 }
                 else
@@ -509,7 +506,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
 	            fl[cc] = conf->MySerial[i];
 		    cc++;
                 }
-                printf( "\n" );
+                fmt::printf( "\n" );
                 break;
 
 	    default :
@@ -521,108 +518,108 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
 	if (flag->debug == 1){ 
             int last_decoded;
 
-            printf(" cc=%d",cc);
-	    printf("\n\n");
-            printf( "\n-----------------------------------------------------------" );
-            printf( "\nSEND:");
+            fmt::printf(" cc=%d",cc);
+	    fmt::printf("\n\n");
+            fmt::printf( "\n-----------------------------------------------------------" );
+            fmt::printf( "\nSEND:");
             //Start byte
-            printf("\n7e ");
+            fmt::printf("\n7e ");
             j=0;
             //Size and checkbit
-            printf("%02x ",fl[++j]);
-            printf("                      size:              %d", fl[j] );
-            printf("\n   " );
-            printf("%02x ",fl[++j]);
-            printf("\n   " );
-            printf("%02x ",fl[++j]);
-            printf("                      checkbit:          %d", fl[j] );
-            printf("\n   " );
+            fmt::printf("%02x ",fl[++j]);
+            fmt::printf("                      size:              %d", fl[j] );
+            fmt::printf("\n   " );
+            fmt::printf("%02x ",fl[++j]);
+            fmt::printf("\n   " );
+            fmt::printf("%02x ",fl[++j]);
+            fmt::printf("                      checkbit:          %d", fl[j] );
+            fmt::printf("\n   " );
             //Source Address
             for( i=++j; i<cc; i++ ) {
                 if( i > j+5 ) break;
-                printf("%02x ",fl[i]);
+                fmt::printf("%02x ",fl[i]);
             }
-            printf("       source:            %02x:%02x:%02x:%02x:%02x:%02x", fl[j+5], fl[j+4], fl[j+3], fl[j+2], fl[j+1], fl[j] );
+            fmt::printf("       source:            %02x:%02x:%02x:%02x:%02x:%02x", fl[j+5], fl[j+4], fl[j+3], fl[j+2], fl[j+1], fl[j] );
             j=j+5;
-            printf("\n   " );
+            fmt::printf("\n   " );
             //Destination Address
             for( i=++j; i<cc; i++ ) {
                 if( i > j+5 ) break;
-                printf("%02x ",fl[i]);
+                fmt::printf("%02x ",fl[i]);
             }
-            printf("       destination:       %02x:%02x:%02x:%02x:%02x:%02x", fl[j+5], fl[j+4], fl[j+3], fl[j+2], fl[j+1], fl[j] );
+            fmt::printf("       destination:       %02x:%02x:%02x:%02x:%02x:%02x", fl[j+5], fl[j+4], fl[j+3], fl[j+2], fl[j+1], fl[j] );
             j=j+5;
-            printf("\n   " );
+            fmt::printf("\n   " );
             //Destination Address
             for( i=++j; i<cc; i++ ) {
                 if( i > j+1 ) break;
-                printf("%02x ",fl[i]);
+                fmt::printf("%02x ",fl[i]);
             }
-            printf("                   control:           %02x%02x", fl[j+1], fl[j] );
+            fmt::printf("                   control:           %02x%02x", fl[j+1], fl[j] );
             j++;
             last_decoded=j+1;
             j++;
             if( memcmp( fl+j, "\x7e\xff\x03\x60\x65", 5 ) == 0 ){
-                printf("\n");
+                fmt::printf("\n");
                 for( i=j; i<cc; i++ ) {
                     if( i > j+4 ) break;
-                    printf("%02x ",fl[i]);
+                    fmt::printf("%02x ",fl[i]);
                 }
-                printf("             SMA Data2+ header: %02x:%02x:%02x:%02x:%02x", fl[j+4], fl[j+3], fl[j+2], fl[j+1], fl[j] );
+                fmt::printf("             SMA Data2+ header: %02x:%02x:%02x:%02x:%02x", fl[j+4], fl[j+3], fl[j+2], fl[j+1], fl[j] );
                 j+=5;
-                printf("\n   " );
+                fmt::printf("\n   " );
                 for( i=++j; i<cc; i++ ) {
                     if( i > j ) break;
-                    printf("%02x ",fl[i]);
+                    fmt::printf("%02x ",fl[i]);
                 }
-                printf("                      data packet size:  %02d", fl[j] );
-                printf("\n   " );
+                fmt::printf("                      data packet size:  %02d", fl[j] );
+                fmt::printf("\n   " );
                 for( i=++j; i<cc; i++ ) {
                     if( i > j ) break;
-                    printf("%02x ",fl[i]);
+                    fmt::printf("%02x ",fl[i]);
                 }
-                printf("                      SUSYId:            %02x", fl[j] );
+                fmt::printf("                      SUSYId:            %02x", fl[j] );
                 j++;
-                printf("\n   " );
+                fmt::printf("\n   " );
                 for( i=++j; i<cc; i++ ) {
                     if( i > j+3 ) break;
-                    printf("%02x ",fl[i]);
+                    fmt::printf("%02x ",fl[i]);
                 }
-                printf("             Serial:            %02x:%02x:%02x:%02x",  fl[j+3], fl[j+2], fl[j+1], fl[j] );
+                fmt::printf("             Serial:            %02x:%02x:%02x:%02x",  fl[j+3], fl[j+2], fl[j+1], fl[j] );
                 j=j+3;
-                printf("\n   " );
+                fmt::printf("\n   " );
                 for( i=++j; i<cc; i++ ) {
                     if( i > j+1 ) break;
-                    printf("%02x ",fl[i]);
+                    fmt::printf("%02x ",fl[i]);
                 }
-                printf("                   unknown:           %02x %02x", fl[j+1], fl[j] );
+                fmt::printf("                   unknown:           %02x %02x", fl[j+1], fl[j] );
                 j++;
-                printf("\n   " );
+                fmt::printf("\n   " );
                 for( i=++j; i<cc; i++ ) {
                     if( i > j+1 ) break;
-                    printf("%02x ",fl[i]);
+                    fmt::printf("%02x ",fl[i]);
                 }
-                printf("                   MySUSId:           %02x:%02x", fl[j+1], fl[j] );
-                printf("\n   " );
+                fmt::printf("                   MySUSId:           %02x:%02x", fl[j+1], fl[j] );
+                fmt::printf("\n   " );
                 for( i=++j; i<cc; i++ ) {
                     if( i > j+3 ) break;
-                        printf("%02x ",fl[i]);
+                        fmt::printf("%02x ",fl[i]);
                 }
-                printf("             MySerial:          %02x:%02x:%02x:%02x", fl[j+3],fl[j+2],fl[j+1], fl[j] );
-                printf("\n   " );
+                fmt::printf("             MySerial:          %02x:%02x:%02x:%02x", fl[j+3],fl[j+2],fl[j+1], fl[j] );
+                fmt::printf("\n   " );
                 j++;
                 last_decoded=j+1;
              }
-             printf("\n   " );
+             fmt::printf("\n   " );
              j=0;
 	     for (i=last_decoded;i<cc;i++) {
                  if( j%16== 0 )
-                     printf( "\n   %08x: ",j);
-                 printf("%02x ",fl[i]);
+                     fmt::printf( "\n   %08x: ",j);
+                 fmt::printf("%02x ",fl[i]);
                  j++;
              }
-             printf(" rr=%d",(cc+3));
-	     printf("\n\n");
+             fmt::printf(" rr=%d",(cc+3));
+	     fmt::printf("\n\n");
         }
         last_sent = (unsigned  char *)realloc( last_sent, sizeof( unsigned char )*(cc));
         memcpy(last_sent,fl,cc);
@@ -634,30 +631,30 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
 
     if(!strcmp(lineread,"E")){		//See if line is something we need to extract
         if( readRecord.Status[0]==0xe0 ) {
-	    if (flag->debug	== 1) printf("\nThere is no data currently available %s\n", debugdate());
+	    if (flag->debug	== 1) fmt::printf("\nThere is no data currently available %s\n", debugdate());
                 // Read the rest of the records
                 while( read_bluetooth(conf, flag, &readRecord, s, &rr, received, cc, last_sent, &terminated) == 0 );
 
             }
             else
             {
-	        if (flag->debug	== 1) printf("[%d] %s Extracting\n", (*linenum), debugdate());
+	        if (flag->debug	== 1) fmt::printf("[%d] %s Extracting\n", (*linenum), debugdate());
 		cc = 0;
 		do{
 		    lineread = strtok(NULL," ;");
-		    //printf( "\nselect=%d", select_str(lineread)); 
+		    //fmt::printf( "\nselect=%d", select_str(lineread)); 
 		    switch(select_str(lineread)) {
                                 
 		    case 9: // extract Time from Inverter
                         idate=ConvertStreamtoTime( received+66, 4, &idate, &day, &month, &year, &hour, &minute, &second );
-			printf("Date power = %d/%d/%4d %02d:%02d:%02d\n",day, month, year, hour, minute,second);
+			fmt::printf("Date power = %d/%d/%4d %02d:%02d:%02d\n",day, month, year, hour, minute,second);
 			//currentpower = (received[72] * 256) + received[71];
-			//printf("Current power = %i Watt\n",currentpower);
+			//fmt::printf("Current power = %i Watt\n",currentpower);
 			break;
 		    case 5: // extract current power $POW
                         if(( data = ReadStream(conf, flag, &readRecord, s, received, &rr, &datalen, last_sent, cc, &terminated, &togo)) != NULL )
                         {
-                           //printf( "\ndata=%02x:%02x:%02x:%02x:%02x:%02x\n", data[0], (data+1)[0], (data+2)[0], (data+3)[0], (data+4)[0], (data+5)[0] );
+                           //fmt::printf( "\ndata=%02x:%02x:%02x:%02x:%02x:%02x\n", data[0], (data+1)[0], (data+2)[0], (data+3)[0], (data+4)[0], (data+5)[0] );
                             int gap;
                             switch (data[3])
                             {
@@ -682,13 +679,13 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                 }
                                 if( return_key >= 0 )
 				{
-				    printf("%d-%02d-%02d %02d:%02d:%02d %-20s = %.0f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
+				    fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-20s = %.0f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
 				    inverter_serial = (unit[0]->Serial[3]<<24) + (unit[0]->Serial[2]<<16) + (unit[0]->Serial[1]<<8) + (unit[0]->Serial[0]);
                                 }
                                 else
                                     if( (data+0)[0] > 0 )
 
-				        printf("%d-%02d-%02d %02d:%02d:%02d NO DATA for %02x %02x = %.0f NO UNITS\n", year, month, day, hour, minute, second, (data+i+1)[0], (data+i+1)[1], currentpower_total );
+				        fmt::printf("%d-%02d-%02d %02d:%02d:%02d NO DATA for %02x %02x = %.0f NO UNITS\n", year, month, day, hour, minute, second, (data+i+1)[0], (data+i+1)[1], currentpower_total );
 			    }
                             free( data );
 			    break;
@@ -701,36 +698,36 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                          
 			gtotal = (received[69] * 65536) + (received[68] * 256) + received[67];
 			gtotal = gtotal / 1000;
-                        printf("G total so far = %.2f Kwh\n",gtotal);
+                        fmt::printf("G total so far = %.2f Kwh\n",gtotal);
 			dtotal = (received[84] * 256) + received[83];
 			dtotal = dtotal / 1000;
-                        printf("E total today = %.2f Kwh\n",dtotal);
+                        fmt::printf("E total today = %.2f Kwh\n",dtotal);
                         break;		
 
 		    case 7: // extract 2nd address
-                        printf( "\naddress=" );
+                        fmt::printf( "\naddress=" );
                         for( i=0; i<6; i++ ) {
-                            printf( "%02x ", received[26+i] );
+                            fmt::printf( "%02x ", received[26+i] );
                         }
                         for (i=0; i<6; i++ ) {
                             conf->MyBTAddress[i]=received[26+i];
                         }
-			if (flag->debug == 1) printf("address 2 = %02x:%02x:%02x:%02x:%02x:%02x \n", conf->MyBTAddress[0], conf->MyBTAddress[1], conf->MyBTAddress[2], conf->MyBTAddress[3], conf->MyBTAddress[4], conf->MyBTAddress[5] );
+			if (flag->debug == 1) fmt::printf("address 2 = %02x:%02x:%02x:%02x:%02x:%02x \n", conf->MyBTAddress[0], conf->MyBTAddress[1], conf->MyBTAddress[2], conf->MyBTAddress[3], conf->MyBTAddress[4], conf->MyBTAddress[5] );
 			break;
 				
 		    case 12: // extract time strings $TIMESTRING
-                        if (flag->debug == 1) printf("received[60]=0x%0X - Expected 0x6D\n", received[60]);
-                        if (flag->debug == 1) printf("received[60]=0x%0X - Expected 0x6D\n", received[60]);
+                        if (flag->debug == 1) fmt::printf("received[60]=0x%0X - Expected 0x6D\n", received[60]);
+                        if (flag->debug == 1) fmt::printf("received[60]=0x%0X - Expected 0x6D\n", received[60]);
                         if(( received[60] == 0x6d )&&( received[61] == 0x23 ))
                         {
 			    memcpy(timestr,received+63,24);
-			    if (flag->debug == 1) printf("extracting timestring\n");
+			    if (flag->debug == 1) fmt::printf("extracting timestring\n");
                             memcpy(timeset,received+79,4);
                             idate=ConvertStreamtoTime( received+63,4, &idate, &day, &month, &year, &hour, &minute, &second  );
                             /* Allow delay for inverter to be slow */
                             if( reporttime > idate ) {
                                 if( flag->debug == 1 )
-                                    printf( "delay=%d\n", (int)(reporttime-idate) );
+                                    fmt::printf( "delay=%d\n", (int)(reporttime-idate) );
                                 //sleep( reporttime - idate );
                                 sleep(5);    //was sleeping for > 1min excessive
                             }
@@ -738,12 +735,12 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                         else
                         {
                             if (received[61]==0x7e) {
-				printf("$TIMESTRING extraction failed. Check password!!!\n");
+				fmt::printf("$TIMESTRING extraction failed. Check password!!!\n");
 			    }	
 			    else
                             {
 			        memcpy(timestr,received+63,24);
-			        if (flag->debug == 1) printf("bad extracting timestring\n");
+			        if (flag->debug == 1) fmt::printf("bad extracting timestring\n");
                             }
                             already_read=0;
                             found=0;
@@ -759,7 +756,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
 		    case 17: // Test data
                         if(( data = ReadStream(conf, flag,  &readRecord, s, received, &rr, &datalen, last_sent, cc, &terminated, &togo)) != NULL )
                         {
-                            printf( "\n" );
+                            fmt::printf( "\n" );
                         
                             free( data );
 		            break;
@@ -772,7 +769,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                         finished=0;
                         ptotal=0;
                         idate=0;
-                        printf( "\n" );
+                        fmt::printf( "\n" );
                         while( finished != 1 ) {
                             if(( data = ReadStream(conf, flag,  &readRecord, s, received, &rr, &datalen, last_sent, cc, &terminated, &togo)) != NULL )
                             {
@@ -791,9 +788,9 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                         ConvertStreamtoFloat( datarecord+4, 8, &gtotal );
                                         if((*archdatalen) == 0 )
                                             ptotal = gtotal;
-	                                    printf("\n%d/%d/%4d %02d:%02d:%02d  total=%.3f Kwh current=%.0f Watts togo=%d i=%d crc=%d", day, month, year, hour, minute,second, gtotal/1000, (gtotal-ptotal)*12, togo, i, crc_at_end);
+	                                    fmt::printf("\n%d/%d/%4d %02d:%02d:%02d  total=%.3f Kwh current=%.0f Watts togo=%d i=%d", day, month, year, hour, minute,second, gtotal/1000, (gtotal-ptotal)*12, togo, i);
 					    if( idate != prev_idate+300 ) {
-                                                printf( "Date Error! prev=%d current=%d\n", (int)prev_idate, (int)idate );
+                                                fmt::printf( "Date Error! prev=%d current=%d\n", (int)prev_idate, (int)idate );
 					        break;
                                             }
                                             if( (*archdatalen) == 0 )
@@ -837,30 +834,30 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                         break;
 				}
                                 free( data );
-                                printf( "\n" );
+                                fmt::printf( "\n" );
                           
 				break;
 			    case 20: // SIGNAL signal strength
                           
 				strength  = (received[22] * 100.0)/0xff;
 	                        if (flag->verbose == 1) {
-                                    printf("bluetooth signal = %.0f%%\n",strength);
+                                    fmt::printf("bluetooth signal = %.0f%%\n",strength);
                                 }
                                 break;		
 			    case 21: // extract $SUSID
 			        unit[0]->SUSyID[0]=received[24];
 			        unit[0]->SUSyID[1]=received[25];
-				if (flag->debug == 1) printf("extracting SUSyID=%02x:%02x\n", unit[0]->SUSyID[0], unit[0]->SUSyID[1] );
+				if (flag->debug == 1) fmt::printf("extracting SUSyID=%02x:%02x\n", unit[0]->SUSyID[0], unit[0]->SUSyID[1] );
 				break;
 			    case 22: // extract time strings $INVCODE
 				conf->NetID=received[22];
-				if (flag->debug == 1) printf("extracting invcode=%02x\n", conf->NetID);
+				if (flag->debug == 1) fmt::printf("extracting invcode=%02x\n", conf->NetID);
                                 
 				break;
 			    case 24: // Inverter data $INVERTERDATA
                                 if(( data = ReadStream(conf, flag,  &readRecord, s, received, &rr, &datalen, last_sent, cc, &terminated, &togo)) != NULL )
                                 {
-                                    if( flag->debug==1 ) printf( "data=%02x\n",(data+3)[0] );
+                                    if( flag->debug==1 ) fmt::printf( "data=%02x\n",(data+3)[0] );
                                     int gap;
                                     switch (data[3])
                                     {
@@ -885,12 +882,12 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                        }
                                        if( return_key >= 0 ) {
                                            if( i==0 )
-				               printf("%d-%02d-%02d  %02d:%02d:%02d %s\n", year, month, day, hour, minute, second, (data+i+8) );
-				           printf("%d-%02d-%02d %02d:%02d:%02d %-20s = %.0f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
+				               fmt::printf("%d-%02d-%02d  %02d:%02d:%02d %s\n", year, month, day, hour, minute, second, (data+i+8) );
+				           fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-20s = %.0f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
                                        }
                                        else
                                            if( data[0]>0 )
-				                printf("%d-%02d-%02d %02d:%02d:%02d NO DATA for %02x %02x = %.0f NO UNITS \n", year, month, day, hour, minute, second, (data+i+1)[0], (data+i+1)[0], currentpower_total );
+				                fmt::printf("%d-%02d-%02d %02d:%02d:%02d NO DATA for %02x %02x = %.0f NO UNITS \n", year, month, day, hour, minute, second, (data+i+1)[0], (data+i+1)[0], currentpower_total );
                                     }
                                     free( data );
 				    break;
@@ -916,7 +913,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                     }
                                     else
                                         if( datalen > 0 )
-                                             printf( "\nFailed to find key %02x:%02x", (data+1)[0],(data+2)[0] );
+                                             fmt::printf( "\nFailed to find key %02x:%02x", (data+1)[0],(data+2)[0] );
                                     
                                     for ( i = 0; i<datalen; i+=gap ) 
                                     {
@@ -938,7 +935,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                                    persistent=1;
                                                else
                                                    persistent = conf->returnkeylist[return_key].persistent;
-		       			       printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.0f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
+		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.0f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
                                                UpdateLiveList(flag, unit[0], "%.0f",  idate, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, -1, (char *)NULL, conf->returnkeylist[return_key].units, persistent, livedatalen, livedatalist );
 					       break;
         				   case 1 :
@@ -947,7 +944,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                                    persistent=1;
                                                else
                                                    persistent = conf->returnkeylist[return_key].persistent;
-		       			       printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.1f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
+		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.1f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
                                                UpdateLiveList(flag, unit[0], "%.1f",  idate, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, -1, (char *)NULL, conf->returnkeylist[return_key].units, persistent, livedatalen, livedatalist );
 					       break;
         				   case 2 :
@@ -956,7 +953,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                                    persistent=1;
                                                else
                                                    persistent = conf->returnkeylist[return_key].persistent;
-		       			       printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.2f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
+		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.2f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
                                                UpdateLiveList(flag, unit[0], "%.2f",  idate, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, -1, (char *)NULL, conf->returnkeylist[return_key].units, persistent, livedatalen, livedatalist );
 					       break;
         				   case 3 :
@@ -965,7 +962,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                                    persistent=1;
                                                else
                                                    persistent = conf->returnkeylist[return_key].persistent;
-		       			       printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.3f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
+		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.3f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
                                                UpdateLiveList(flag, unit[0], "%.3f",  idate, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, -1, (char *)NULL, conf->returnkeylist[return_key].units, persistent, livedatalen, livedatalist );
 					       break;
         				   case 4 :
@@ -974,43 +971,46 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                                    persistent=1;
                                                else
                                                    persistent = conf->returnkeylist[return_key].persistent;
-		       			       printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.4f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
+		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.4f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
                                                UpdateLiveList(flag, unit[0], "%.4f",  idate, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, -1, (char *)NULL, conf->returnkeylist[return_key].units, persistent, livedatalen, livedatalist );
 					       break;
                                            case 97 :
-
+                                           {
                                                idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second  );
-		       			       printf("                    %-30s = %d-%02d-%02d %02d:%02d:%02d\n", conf->returnkeylist[return_key].description, year, month, day, hour, minute, second );
-                                               sprintf( valuebuf, "%d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second );
-                                               UpdateLiveList(flag, unit[0], "%s",  idate, conf->returnkeylist[return_key].description, -1.0, -1, valuebuf, conf->returnkeylist[return_key].units, conf->returnkeylist[return_key].persistent, livedatalen, livedatalist );
+		       			       fmt::printf("                    %-30s = %d-%02d-%02d %02d:%02d:%02d\n", conf->returnkeylist[return_key].description, year, month, day, hour, minute, second );
+                                               auto valuebuf = fmt::sprintf("%d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second );
+                                               UpdateLiveList(flag, unit[0], "%s",  idate, conf->returnkeylist[return_key].description, -1.0, -1, valuebuf.c_str(), conf->returnkeylist[return_key].units, conf->returnkeylist[return_key].persistent, livedatalen, livedatalist );
 
                                                break;
+                                           }
         				   case 98 :
+                                           {
                                                idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second  );
                                                ConvertStreamtoInt( data+i+8, 2, &index );
-                                               datastring = return_xml_data( conf, index );
-		       			       printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %s %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, datastring, conf->returnkeylist[return_key].units );
-                                               UpdateLiveList(flag, unit[0], "%s",  idate, conf->returnkeylist[return_key].description, -1.0, -1, datastring, conf->returnkeylist[return_key].units, conf->returnkeylist[return_key].persistent, livedatalen, livedatalist );
+                                               auto datastring = return_xml_data( conf, index );
+		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %s %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, datastring, conf->returnkeylist[return_key].units );
+                                               UpdateLiveList(flag, unit[0], "%s",  idate, conf->returnkeylist[return_key].description, -1.0, -1, datastring.c_str(), conf->returnkeylist[return_key].units, conf->returnkeylist[return_key].persistent, livedatalen, livedatalist );
                                                if( (data+i+1)[0]==0x20 && (data+i+2)[0] == 0x82 ) {
-                                                    strcpy( unit[0]->Inverter, datastring );
+                                                    strcpy(unit[0]->Inverter, datastring.c_str());
                                                }
-                                               free( datastring);
 					       break;
+                                           }
         				   case 99 :
+                                           {
                                                idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second  );
-                                               datastring = ConvertStreamtoString( data+i+8, datalength );
-		       			       printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %s %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, datastring, conf->returnkeylist[return_key].units );
-                                               UpdateLiveList(flag, unit[0], "%s",  idate, conf->returnkeylist[return_key].description, -1.0, -1, datastring, conf->returnkeylist[return_key].units, conf->returnkeylist[return_key].persistent, livedatalen, livedatalist );
+                                               auto datastring = ConvertStreamtoString( data+i+8, datalength );
+		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %s %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, datastring, conf->returnkeylist[return_key].units );
+                                               UpdateLiveList(flag, unit[0], "%s",  idate, conf->returnkeylist[return_key].description, -1.0, -1, datastring.c_str(), conf->returnkeylist[return_key].units, conf->returnkeylist[return_key].persistent, livedatalen, livedatalist );
                                                
-                                               free( datastring );
 					       break;
+                                           }
       				           }
 				    //       live_mysql( &conf, year, month, day, hour, minute, second, conf.Inverter, inverter_serial, returnkeylist[return_key].description, currentpower_total/returnkeylist[return_key].divisor, returnkeylist[return_key].units, debug );
                                        }
                                        else
                                        {
                                            if( data[0]>0 )
-				               printf("%d-%02d-%02d %02d:%02d:%02d NO DATA for %02x %02x = %.0f NO UNITS\n", year, month, day, hour, minute, second, (data+i+1)[0], (data+i+1)[1], currentpower_total );
+				               fmt::printf("%d-%02d-%02d %02d:%02d:%02d NO DATA for %02x %02x = %.0f NO UNITS\n", year, month, day, hour, minute, second, (data+i+1)[0], (data+i+1)[1], currentpower_total );
                                            break;
                                        }
                                     }
@@ -1024,13 +1024,13 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
 				}
 			    case 31: // LOGIN Data
                                 idate=ConvertStreamtoTime( received+59, 4, &idate, &day, &month, &year, &hour, &minute, &second );
-                                if( flag->debug == 1) printf("Date power = %d/%d/%4d %02d:%02d:%02d\n",day, month, year, hour, minute,second);
-			        if (flag->debug == 1) printf("extracting SUSyID=%02x:%02x\n", received[33], received[34]);
+                                if( flag->debug == 1) fmt::printf("Date power = %d/%d/%4d %02d:%02d:%02d\n",day, month, year, hour, minute,second);
+			        if (flag->debug == 1) fmt::printf("extracting SUSyID=%02x:%02x\n", received[33], received[34]);
                                 unit[0]->Serial[3]=received[35];
                                 unit[0]->Serial[2]=received[36];
                                 unit[0]->Serial[1]=received[37];
                                 unit[0]->Serial[0]=received[38];
-			        if (flag->verbose	== 1) printf( "serial=%02x:%02x:%02x:%02x\n",unit[0]->Serial[3]&0xff,unit[0]->Serial[2]&0xff,unit[0]->Serial[1]&0xff,unit[0]->Serial[0]&0xff );  
+			        if (flag->verbose	== 1) fmt::printf( "serial=%02x:%02x:%02x:%02x\n",unit[0]->Serial[3]&0xff,unit[0]->Serial[2]&0xff,unit[0]->Serial[1]&0xff,unit[0]->Serial[0]&0xff );  
                                     //This is where we poll for other inverters
 				inverter_serial=(unit[0]->Serial[0]<<24)+(unit[0]->Serial[1]<<16)+(unit[0]->Serial[2]<<8)+unit[0]->Serial[3];
                                 sprintf( unit[0]->SerialStr, "%llu", inverter_serial ); 
@@ -1058,16 +1058,16 @@ void InverterCommand(const char* command, ConfType* conf, const FlagType* flag, 
     int linenum;
 
     if (fseek( fp, 0L, 0 ) < 0 )
-        printf( "\nError" );
+        fmt::printf( "\nError" );
     if(( linenum = GetLine( command, fp )) > 0 ) {
         if (ProcessCommand(conf, flag, unit, s, fp, &linenum, archdatalist, archdatalen, livedatalist, livedatalen) < 0) {
-            printf( "\nError need to do something" ); getchar();
+            fmt::printf( "\nError need to do something" ); getchar();
         }
     }
     else
     {
 	//Command not found in config
-	printf( "\nCommand %s not found", command );
+	fmt::printf( "\nCommand %s not found", command );
     }    
 }
 

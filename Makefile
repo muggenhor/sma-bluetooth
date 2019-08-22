@@ -1,5 +1,5 @@
 ARCH := $(shell getconf LONG_BIT)
-CPPFLAGS := -I/usr/include/libxml2
+CPPFLAGS := -I/usr/include/libxml2 -DFMT_HEADER_ONLY=1 -DFMT_STRING_ALIAS=1
 CXXFLAGS := -std=c++14 -fstack-protector-all -g3 -O3 -Wall -Wextra -Werror -Wno-unused-result
 
 all: smatool

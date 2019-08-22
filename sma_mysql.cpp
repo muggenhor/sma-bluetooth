@@ -6,6 +6,8 @@
 #include "sma_struct.hpp"
 #include <time.h>
 #include <stdexcept>
+#include <fmt/printf.h>
+#include "smatool.hpp"
 
 MySQLResult::~MySQLResult()
 {
@@ -74,33 +76,33 @@ int install_mysql_tables(const ConfType* conf, const FlagType* flag, const char*
 /*  Do initial mysql table creationsa */
 {
     int	        found=0;
-    char 	SQLQUERY[1000];
+    std::string SQLQUERY;
 
     MySQL conn( conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, "mysql");
     //Get Start of day value
-    sprintf(SQLQUERY,"SHOW DATABASES" );
-    if (flag->debug == 1) printf("%s\n",SQLQUERY);
+    SQLQUERY = "SHOW DATABASES";
+    if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
 
-    auto res = conn.fetch_query(SQLQUERY);
+    auto res = conn.fetch_query(SQLQUERY.c_str());
     for (auto row = res.fetch_row(); row; row = res.fetch_row())  //if there is a result, update the row
     {
        if( strcmp( row[0], conf->MySqlDatabase ) == 0 )
        {
           found=1;
-          printf( "Database exists - exiting" );
+          fmt::printf( "Database exists - exiting" );
        }
     }
     if( found == 0 )
     {
-       sprintf( SQLQUERY,"CREATE DATABASE IF NOT EXISTS %s", conf->MySqlDatabase );
-       if (flag->debug == 1) printf("%s\n",SQLQUERY);
-       conn.query(SQLQUERY);
+       SQLQUERY = fmt::sprintf("CREATE DATABASE IF NOT EXISTS %s", conf->MySqlDatabase);
+       if (flag->debug == 1) fmt::printf("%s\n", SQLQUERY);
+       conn.query(SQLQUERY.c_str());
 
-       sprintf( SQLQUERY,"USE  %s", conf->MySqlDatabase );
-       if (flag->debug == 1) printf("%s\n",SQLQUERY);
-       conn.query(SQLQUERY);
+       SQLQUERY = fmt::sprintf("USE  %s", conf->MySqlDatabase);
+       if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
+       conn.query(SQLQUERY.c_str());
 
-       sprintf( SQLQUERY,"CREATE TABLE `Almanac` ( `id` bigint(20) NOT NULL \
+       SQLQUERY = "CREATE TABLE `Almanac` ( `id` bigint(20) NOT NULL \
           AUTO_INCREMENT, \
           `date` date NOT NULL,\
           `sunrise` datetime DEFAULT NULL,\
@@ -108,12 +110,12 @@ int install_mysql_tables(const ConfType* conf, const FlagType* flag, const char*
           `CHANGETIME` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, \
            PRIMARY KEY (`id`),\
            UNIQUE KEY `date` (`date`)\
-           ) ENGINE=MyISAM" );
+           ) ENGINE=MyISAM";
 
-       if (flag->debug == 1) printf("%s\n",SQLQUERY);
-       conn.query(SQLQUERY);
+       if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
+       conn.query(SQLQUERY.c_str());
   
-       sprintf( SQLQUERY, "CREATE TABLE `DayData` ( \
+       SQLQUERY = "CREATE TABLE `DayData` ( \
            `DateTime` datetime NOT NULL, \
            `Inverter` varchar(30) NOT NULL, \
            `Serial` varchar(40) NOT NULL, \
@@ -123,12 +125,12 @@ int install_mysql_tables(const ConfType* conf, const FlagType* flag, const char*
            `PVOutput` datetime DEFAULT NULL, \
            `CHANGETIME` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP, \
            PRIMARY KEY (`DateTime`,`Inverter`,`Serial`) \
-           ) ENGINE=MyISAM" );
+           ) ENGINE=MyISAM";
 
-       if (flag->debug == 1) printf("%s\n",SQLQUERY);
-       conn.query(SQLQUERY);
+       if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
+       conn.query(SQLQUERY.c_str());
 
-       sprintf( SQLQUERY, "CREATE TABLE `LiveData` ( \
+       SQLQUERY = "CREATE TABLE `LiveData` ( \
            `id` bigint(20) NOT NULL  AUTO_INCREMENT, \
            `DateTime` datetime NOT NULL, \
            `Inverter` varchar(30) NOT NULL, \
@@ -139,24 +141,24 @@ int install_mysql_tables(const ConfType* conf, const FlagType* flag, const char*
            `CHANGETIME` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP, \
            PRIMARY KEY (`id`), \
            UNIQUE KEY 'DateTime'(`DateTime`,`Inverter`,`Serial`,`Description`) \
-           ) ENGINE=MyISAM" );
-       if (flag->debug == 1) printf("%s\n",SQLQUERY);
-       conn.query(SQLQUERY);
+           ) ENGINE=MyISAM";
+       if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
+       conn.query(SQLQUERY.c_str());
 
-       sprintf( SQLQUERY, "CREATE TABLE `settings` ( \
+       SQLQUERY = "CREATE TABLE `settings` ( \
            `value` varchar(128) NOT NULL, \
            `data` varchar(500) NOT NULL, \
            PRIMARY KEY (`value`) \
-           ) ENGINE=MyISAM" );
+           ) ENGINE=MyISAM";
 
-       if (flag->debug == 1) printf("%s\n",SQLQUERY);
-       conn.query(SQLQUERY);
+       if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
+       conn.query(SQLQUERY.c_str());
         
        
-       sprintf( SQLQUERY, "INSERT INTO `settings` SET `value` = \'schema\', `data` = \'%s\' ", SCHEMA );
+       SQLQUERY = fmt::sprintf("INSERT INTO `settings` SET `value` = \'schema\', `data` = \'%s\' ", SCHEMA);
 
-       if (flag->debug == 1) printf("%s\n",SQLQUERY);
-       conn.query(SQLQUERY);
+       if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
+       conn.query(SQLQUERY.c_str());
     }
 
     return found;
@@ -166,39 +168,39 @@ void update_mysql_tables(const ConfType* conf, const FlagType* flag)
 /*  Do mysql table schema updates */
 {
     int		schema_value=0;
-    char 	SQLQUERY[1000];
+    std::string SQLQUERY;
 
     MySQL conn( conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, "mysql");
-    sprintf( SQLQUERY,"USE  %s", conf->MySqlDatabase );
-    if (flag->debug == 1) printf("%s\n",SQLQUERY);
-    conn.query(SQLQUERY);
+    SQLQUERY = fmt::sprintf("USE  %s", conf->MySqlDatabase);
+    if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
+    conn.query(SQLQUERY.c_str());
     /*Check current schema value*/
-    sprintf(SQLQUERY,"SELECT data FROM settings WHERE value=\'schema\' " );
-    if (flag->debug == 1) printf("%s\n",SQLQUERY);
-    auto res = conn.fetch_query(SQLQUERY);
+    SQLQUERY = fmt::sprintf("SELECT data FROM settings WHERE value=\'schema\' " );
+    if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
+    auto res = conn.fetch_query(SQLQUERY.c_str());
     if (auto row = res.fetch_row())  //if there is a result, update the row
     {
        schema_value=atoi(row[0]);
     }
     if( schema_value == 1 ) { //Upgrade from 1 to 2
-        sprintf(SQLQUERY,"ALTER TABLE `DayData` CHANGE `ETotalToday` `ETotalToday` DECIMAL(10,3) NULL DEFAULT NULL" );
-        if (flag->debug == 1) printf("%s\n",SQLQUERY);
-        conn.query(SQLQUERY);
-        sprintf( SQLQUERY, "UPDATE `settings` SET `value` = \'schema\', `data` = 2 " );
-        if (flag->debug == 1) printf("%s\n",SQLQUERY);
-        conn.query(SQLQUERY);
+        SQLQUERY = "ALTER TABLE `DayData` CHANGE `ETotalToday` `ETotalToday` DECIMAL(10,3) NULL DEFAULT NULL";
+        if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
+        conn.query(SQLQUERY.c_str());
+        SQLQUERY = "UPDATE `settings` SET `value` = \'schema\', `data` = 2 ";
+        if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
+        conn.query(SQLQUERY.c_str());
     }
     /*Check current schema value*/
 
-    sprintf(SQLQUERY,"SELECT data FROM settings WHERE value=\'schema\' " );
-    if (flag->debug == 1) printf("%s\n",SQLQUERY);
-    res = conn.fetch_query(SQLQUERY);
+    SQLQUERY = "SELECT data FROM settings WHERE value=\'schema\' ";
+    if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
+    res = conn.fetch_query(SQLQUERY.c_str());
     if (auto row = res.fetch_row())  //if there is a result, update the row
     {
        schema_value=atoi(row[0]);
     }
     if( schema_value == 2 ) { //Upgrade from 2 to 3
-        sprintf(SQLQUERY,"CREATE TABLE `LiveData` ( \
+        SQLQUERY = "CREATE TABLE `LiveData` ( \
 		`id` BIGINT NOT NULL AUTO_INCREMENT , \
            	`DateTime` datetime NOT NULL, \
            	`Inverter` varchar(10) NOT NULL, \
@@ -209,24 +211,24 @@ void update_mysql_tables(const ConfType* conf, const FlagType* flag)
            	`CHANGETIME` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP, \
            	UNIQUE KEY (`DateTime`,`Inverter`,`Serial`,`Description`), \
 		PRIMARY KEY ( `id` ) \
-		) ENGINE = MYISAM" );
-        if (flag->debug == 1) printf("%s\n",SQLQUERY);
-        conn.query(SQLQUERY);
-        sprintf( SQLQUERY, "UPDATE `settings` SET `value` = \'schema\', `data` = 3 " );
-        if (flag->debug == 1) printf("%s\n",SQLQUERY);
-        conn.query(SQLQUERY);
+		) ENGINE = MYISAM";
+        if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
+        conn.query(SQLQUERY.c_str());
+        SQLQUERY = "UPDATE `settings` SET `value` = \'schema\', `data` = 3 ";
+        if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
+        conn.query(SQLQUERY.c_str());
     }
 
     if( schema_value == 3 ) { //Upgrade from 3 to 4
-        sprintf(SQLQUERY,"ALTER TABLE `DayData` CHANGE `Inverter` `Inverter` varchar(30) NOT NULL, CHANGE `Serial` `Serial` varchar(40) NOT NULL" );
-        if (flag->debug == 1) printf("%s\n",SQLQUERY);
-        conn.query(SQLQUERY);
-        sprintf(SQLQUERY,"ALTER TABLE `LiveData` CHANGE `Inverter` `Inverter` varchar(30) NOT NULL, CHANGE `Serial` `Serial` varchar(40) NOT NULL, CHANGE `Description` `Description` varchar(30) NOT NULL, CHANGE `Value` `Value` varchar(30), CHANGE `Units` `Units` varchar(20) NULL DEFAULT NULL " );
-        if (flag->debug == 1) printf("%s\n",SQLQUERY);
-        conn.query(SQLQUERY);
-        sprintf( SQLQUERY, "UPDATE `settings` SET `value` = \'schema\', `data` = 4 " );
-        if (flag->debug == 1) printf("%s\n",SQLQUERY);
-        conn.query(SQLQUERY);
+        SQLQUERY = "ALTER TABLE `DayData` CHANGE `Inverter` `Inverter` varchar(30) NOT NULL, CHANGE `Serial` `Serial` varchar(40) NOT NULL";
+        if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
+        conn.query(SQLQUERY.c_str());
+        SQLQUERY = "ALTER TABLE `LiveData` CHANGE `Inverter` `Inverter` varchar(30) NOT NULL, CHANGE `Serial` `Serial` varchar(40) NOT NULL, CHANGE `Description` `Description` varchar(30) NOT NULL, CHANGE `Value` `Value` varchar(30), CHANGE `Units` `Units` varchar(20) NULL DEFAULT NULL ";
+        if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
+        conn.query(SQLQUERY.c_str());
+        SQLQUERY = "UPDATE `settings` SET `value` = \'schema\', `data` = 4 ";
+        if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
+        conn.query(SQLQUERY.c_str());
     }
 }
 
@@ -234,12 +236,11 @@ int check_schema(const ConfType* conf, const FlagType* flag, const char* SCHEMA)
 /*  Check if using the correct database schema */
 {
     int	        found=0;
-    char 	SQLQUERY[200];
 
     MySQL conn( conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, conf->MySqlDatabase);
     //Get Start of day value
-    sprintf(SQLQUERY,"SELECT data FROM settings WHERE value=\'schema\' " );
-    if (flag->debug == 1) printf("%s\n",SQLQUERY);
+    static const char SQLQUERY[] = "SELECT data FROM settings WHERE value=\'schema\' ";
+    if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
     auto res = conn.fetch_query(SQLQUERY);
     if (auto row = res.fetch_row())  //if there is a result, update the row
     {
@@ -248,7 +249,7 @@ int check_schema(const ConfType* conf, const FlagType* flag, const char* SCHEMA)
     }
     if( found != 1 )
     {
-       printf( "Please Update database schema use --UPDATE\n" );
+       fmt::printf( "Please Update database schema use --UPDATE\n" );
     }
     return found;
 }
@@ -257,28 +258,16 @@ int check_schema(const ConfType* conf, const FlagType* flag, const char* SCHEMA)
 void live_mysql(const ConfType* conf, const FlagType* flag, const LiveDataType* livedatalist, int livedatalen)
 /* Live inverter values mysql update */
 {
-    struct tm 	*loctime;
-    char 	SQLQUERY[2000];
-    char	datetime[20];
-    int 	day,month,year,hour,minute,second;
     int		live_data=1;
     int		i;
  
     MySQL conn(conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, conf->MySqlDatabase);
     for( i=0; i<livedatalen; i++ ) {
-        loctime = localtime(&(livedatalist+i)->date);
-        day = loctime->tm_mday;
-        month = loctime->tm_mon +1;
-        year = loctime->tm_year + 1900;
-        hour = loctime->tm_hour;
-        minute = loctime->tm_min;
-        second = loctime->tm_sec;
-
         live_data=1;
         if( (livedatalist+i)->Persistent == 1 ) {
-            sprintf( SQLQUERY, "SELECT IF (Value = \"%s\",NULL,Value) FROM LiveData where Inverter=\"%s\" and Serial=%llu and Description=\"%s\" ORDER BY DateTime DESC LIMIT 1", (livedatalist+i)->Value, (livedatalist+i)->inverter, (livedatalist+i)->serial, (livedatalist+i)->Description );
-            if (flag->debug == 1) printf("%s\n",SQLQUERY);
-            auto res = conn.fetch_query(SQLQUERY);
+            const auto SQLQUERY = fmt::sprintf("SELECT IF (Value = \"%s\",NULL,Value) FROM LiveData where Inverter=\"%s\" and Serial=%llu and Description=\"%s\" ORDER BY DateTime DESC LIMIT 1", (livedatalist+i)->Value, (livedatalist+i)->inverter, (livedatalist+i)->serial, (livedatalist+i)->Description);
+            if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
+            auto res = conn.fetch_query(SQLQUERY.c_str());
             if (res) {
                 if (auto row = res.fetch_row())  //if there is a result, update the row
                 {
@@ -289,10 +278,9 @@ void live_mysql(const ConfType* conf, const FlagType* flag, const LiveDataType* 
             }
         }
         if( live_data==1 ) {
-            sprintf(datetime, "%d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second );
-            sprintf(SQLQUERY,"INSERT INTO LiveData ( DateTime, Inverter, Serial, Description, Value, Units ) VALUES ( \'%s\', \'%s\', %lld, \'%s\', \'%s\', \'%s\'  ) ON DUPLICATE KEY UPDATE DateTime=Datetime, Inverter=VALUES(Inverter), Serial=VALUES(Serial), Description=VALUES(Description), Description=VALUES(Description), Value=VALUES(Value), Units=VALUES(Units)", datetime, (livedatalist+i)->inverter, (livedatalist+i)->serial, (livedatalist+i)->Description, (livedatalist+i)->Value, (livedatalist+i)->Units);
-            if (flag->debug == 1) printf("%s\n",SQLQUERY);
-            conn.query(SQLQUERY);
+            const auto SQLQUERY = fmt::sprintf("INSERT INTO LiveData ( DateTime, Inverter, Serial, Description, Value, Units ) VALUES ( \'%s\', \'%s\', %lld, \'%s\', \'%s\', \'%s\'  ) ON DUPLICATE KEY UPDATE DateTime=Datetime, Inverter=VALUES(Inverter), Serial=VALUES(Serial), Description=VALUES(Description), Description=VALUES(Description), Value=VALUES(Value), Units=VALUES(Units)", debugdate(), (livedatalist+i)->inverter, (livedatalist+i)->serial, (livedatalist+i)->Description, (livedatalist+i)->Value, (livedatalist+i)->Units);
+            if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
+            conn.query(SQLQUERY.c_str());
         }
     }
 }

@@ -20,10 +20,11 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include <fmt/printf.h>
 #include "sma_struct.hpp"
 #include "sma_mysql.hpp"
 
-char* sunrise(const ConfType* conf, int debug)
+std::string sunrise(const ConfType* conf, int debug)
 {
    //adapted from http://williams.best.vwh.net/sunrise_sunset_algorithm.htm
    time_t curtime;
@@ -40,7 +41,7 @@ char* sunrise(const ConfType* conf, int debug)
    float localOffset,zenith=91;
    double pi=M_PI;
 
-   printf( "latitude=%f longitude=%f debug=%d\n", latitude, longitude, debug );
+   fmt::printf( "latitude=%f longitude=%f debug=%d\n", latitude, longitude, debug );
 
    curtime = time(NULL);  //get time in seconds since epoch (1/1/1970)	
    loctime = localtime(&curtime);
@@ -52,16 +53,16 @@ char* sunrise(const ConfType* conf, int debug)
    utctime = gmtime(&curtime);
    
 
-   if( debug == 1 ) printf( "1. utc=%04d-%02d-%02d %02d:%02d local=%04d-%02d-%02d %02d:%02d diff %d hours\n", utctime->tm_year+1900, utctime->tm_mon+1,utctime->tm_mday,utctime->tm_hour,utctime->tm_min, year, month, day, hour, minute, hour-utctime->tm_hour );
+   if( debug == 1 ) fmt::printf( "1. utc=%04d-%02d-%02d %02d:%02d local=%04d-%02d-%02d %02d:%02d diff %d hours\n", utctime->tm_year+1900, utctime->tm_mon+1,utctime->tm_mday,utctime->tm_hour,utctime->tm_min, year, month, day, hour, minute, hour-utctime->tm_hour );
    localOffset=(hour-utctime->tm_hour)+(minute-utctime->tm_min)/60;
-   if( debug == 1 ) printf( "localOffset=%f\n", localOffset );
+   if( debug == 1 ) fmt::printf( "localOffset=%f\n", localOffset );
    if(( year > utctime->tm_year+1900 )||( month > utctime->tm_mon+1 )||( day > utctime->tm_mday ))
       localOffset+=24;
    if(( year < utctime->tm_year+1900 )||( month < utctime->tm_mon+1 )||( day < utctime->tm_mday ))
       localOffset-=24;
-   if( debug == 1 ) printf( "localOffset=%f\n", localOffset );
+   if( debug == 1 ) fmt::printf( "localOffset=%f\n", localOffset );
    lngHour = longitude / 15;
-   if( debug == 1 ) printf( "long=%f lngHour=%f\n", longitude, lngHour );
+   if( debug == 1 ) fmt::printf( "long=%f lngHour=%f\n", longitude, lngHour );
    t = loctime->tm_yday + ((6 - lngHour) / 24);
    //Calculate the Sun's mean anomaly
    M = (0.9856 * t) - 3.289;
@@ -85,10 +86,10 @@ char* sunrise(const ConfType* conf, int debug)
    cosH = (cos((pi/180)*zenith) - (sinDec * sin((pi/180)*latitude))) / (cosDec * cos((pi/180)*latitude));
 	
    if (cosH >  1) 
-      printf( "Sun never rises here!\n" );
+      fmt::printf( "Sun never rises here!\n" );
 	  //the sun never rises on this location (on the specified date)
    if (cosH < -1)
-      printf( "Sun never sets here!\n" );
+      fmt::printf( "Sun never sets here!\n" );
 	  //the sun never sets on this location (on the specified date)
    //finish calculating H and convert into hours
    H = 360 -(180/pi)*acos(cosH);
@@ -108,14 +109,12 @@ char* sunrise(const ConfType* conf, int debug)
    localT = UT + localOffset;
    if( localT < 0 ) localT=localT+24;
    if( localT > 24 ) localT=localT-24;
-   char* returntime;
-   if (asprintf(&returntime, "%02.0f:%02.0f", floor(localT), floor((localT - floor(localT)) * 60)) == -1)
-      return NULL;
-   if( debug==1 ) printf( "returntime=%s\n", returntime );
+   auto returntime = fmt::sprintf("%02.0f:%02.0f", floor(localT), floor((localT - floor(localT)) * 60));
+   if( debug==1 ) fmt::printf( "returntime=%s\n", returntime );
    return returntime;
 }
 
-char* sunset(const ConfType* conf, int debug)
+std::string sunset(const ConfType* conf, int debug)
 {
    (void)debug;
    //adapted from http://williams.best.vwh.net/sunrise_sunset_algorithm.htm
@@ -193,22 +192,18 @@ char* sunset(const ConfType* conf, int debug)
    localT = UT + localOffset;
    if( localT < 0 ) localT=localT+24;
    if( localT > 24 ) localT=localT-24;
-   char* returntime;
-   if (asprintf(&returntime, "%02.0f:%02.0f", floor(localT), floor((localT - floor(localT)) * 60)) == -1)
-       return NULL;
-   return returntime;
+   return fmt::sprintf("%02.0f:%02.0f", floor(localT), floor((localT - floor(localT)) * 60));
 }
 
 int todays_almanac(const ConfType* conf, int debug)
 /*  Check if sunset and sunrise have been set today */
 {
     int	        found=0;
-    char 	SQLQUERY[200];
 
     MySQL conn(conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, conf->MySqlDatabase);
     //Get Start of day value
-    sprintf(SQLQUERY,"SELECT sunrise FROM Almanac WHERE date=DATE_FORMAT( NOW(), \"%%Y-%%m-%%d\" ) " );
-    if (debug == 1) printf("%s\n",SQLQUERY);
+    static const char SQLQUERY[] = "SELECT sunrise FROM Almanac WHERE date=DATE_FORMAT(NOW(), \"%Y-%m-%d\")";
+    if (debug == 1) fmt::printf("%s\n",SQLQUERY);
     auto res = conn.fetch_query(SQLQUERY);
     if (res.num_rows() > 0)  //if there is a result, update the row
     {
@@ -219,11 +214,9 @@ int todays_almanac(const ConfType* conf, int debug)
 
 void update_almanac(const ConfType* conf, const char* sunrise, const char* sunset, int debug)
 {
-    char 	SQLQUERY[200];
-
     MySQL conn(conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, conf->MySqlDatabase);
     //Get Start of day value
-    sprintf(SQLQUERY,"INSERT INTO Almanac SET sunrise=CONCAT(DATE_FORMAT( NOW(), \"%%Y-%%m-%%d \"),\"%s\"), sunset=CONCAT(DATE_FORMAT( NOW(), \"%%Y-%%m-%%d \"),\"%s\" ), date=NOW() ", sunrise, sunset );
-    if (debug == 1) printf("%s\n",SQLQUERY);
-    conn.query(SQLQUERY);
+    auto SQLQUERY = fmt::sprintf("INSERT INTO Almanac SET sunrise=CONCAT(DATE_FORMAT( NOW(), \"%%Y-%%m-%%d \"),\"%s\"), sunset=CONCAT(DATE_FORMAT( NOW(), \"%%Y-%%m-%%d \"),\"%s\" ), date=NOW() ", sunrise, sunset);
+    if (debug == 1) fmt::printf("%s\n",SQLQUERY);
+    conn.query(SQLQUERY.c_str());
 }
