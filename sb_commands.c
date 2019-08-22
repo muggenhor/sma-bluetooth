@@ -100,10 +100,8 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
    int   i, j, cc, rr;
    int	 datalen=0;
    int   failedbluetooth=0;
-   int	 error=0;
    int   togo=0;
    int   finished;
-   time_t curtime;
    time_t reporttime;
    time_t fromtime;
    time_t totime;
@@ -112,7 +110,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
    unsigned char tzhex[2] = { 0 };
    unsigned char timeset[4] = { 0x30,0xfe,0x7e,0x00 };
    struct tm tm;
-   int day,month,year,hour,minute,second,datapoint;
+   int day,month,year,hour,minute,second;
    unsigned char fl[1024] = { 0 };
    unsigned char received[1024];
    unsigned char datarecord[1024];
@@ -138,8 +136,6 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
    int	 persistent;
    int index;
    unsigned long long inverter_serial;
-   MYSQL_ROW row, row1;
-   char SQLQUERY[200];
    char	valuebuf[30];
 
 
@@ -341,7 +337,6 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
                     {
                         if( flag->debug==1 ) printf( "datefrom %s\n", conf->datefrom );
                         printf( "Time Coversion Error\n" );
-                        error=1;
                         exit(-1);
                     }
                     tm.tm_isdst=-1;
@@ -375,7 +370,6 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
                     {
                         if( flag->debug==1 ) printf( "dateto %s\n", conf->dateto );
                         printf( "Time Coversion Error\n" );
-                        error=1;
                         exit(-1);
                     }
                     tm.tm_isdst=-1;
@@ -796,7 +790,6 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
 	                                    printf("\n%d/%d/%4d %02d:%02d:%02d  total=%.3f Kwh current=%.0f Watts togo=%d i=%d crc=%d", day, month, year, hour, minute,second, gtotal/1000, (gtotal-ptotal)*12, togo, i, crc_at_end);
 					    if( idate != prev_idate+300 ) {
                                                 printf( "Date Error! prev=%d current=%d\n", (int)prev_idate, (int)idate );
-                                                error=1;
 					        break;
                                             }
                                             if( (*archdatalen) == 0 )

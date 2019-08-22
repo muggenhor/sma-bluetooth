@@ -198,13 +198,10 @@ add_escapes(unsigned char *cp, int *len)
 void
 fix_length_send( FlagType * flag, unsigned char *cp, int *len)
 {
-    int	    delta=0;
-
     if( flag->debug == 1 ) 
        printf( "sum=%x\n", cp[1]+cp[3] );
     if(( cp[1] != (*len)+1 ))
     {
-      delta = (*len)+1 - cp[1];
       if( flag->debug == 1 ) {
           printf( "  length change from %x to %x diff=%x \n", cp[1],(*len)+1,cp[1]+cp[3] );
       }
@@ -254,14 +251,10 @@ fix_length_send( FlagType * flag, unsigned char *cp, int *len)
 void
 fix_length_received(FlagType * flag, unsigned char *received, int *len)
 {
-    int	    delta=0;
-    int	    sum;
-
     if( received[1] != (*len) )
     {
-      sum = received[1]+received[3];
+      int sum = received[1]+received[3];
       if (flag->debug == 1) printf( "sum=%x", sum );
-      delta = (*len) - received[1];
       if (flag->debug == 1) printf( "length change from %x to %x\n", received[1], (*len) );
       if(( received[3] != 0x13 )&&( received[3] != 0x14 )) { 
         received[1] = (*len);
@@ -467,7 +460,6 @@ empty_read_bluetooth(  ConfType * conf, FlagType * flag, ReadRecordType * readRe
     int bytes_read,i,j, last_decoded;
     unsigned char buf[1024]; /*read buffer*/
     unsigned char header[4]; /*read buffer*/
-    unsigned char checkbit;
     struct timeval tv;
     fd_set readfds;
 
@@ -858,12 +850,10 @@ unsigned char *  get_timezone_in_seconds( FlagType * flag, unsigned char *tzhex 
    struct tm *loctime;
    struct tm *utctime;
    int day,month,year,hour,minute,isdst;
-   char *returntime;
 
    float localOffset;
    int	 tzsecs;
 
-   returntime = (char *)malloc(6*sizeof(char));
    curtime = time(NULL);  //get time in seconds since epoch (1/1/1970)	
    loctime = localtime(&curtime);
    day = loctime->tm_mday;
@@ -902,7 +892,6 @@ int auto_set_dates( ConfType * conf, FlagType * flag )
     MYSQL_ROW 	row;
     char 	SQLQUERY[200];
     time_t  	curtime;
-    int 	day,month,year,hour,minute,second;
     struct tm 	*loctime;
 
     if( flag->mysql == 1 )
@@ -924,13 +913,13 @@ int auto_set_dates( ConfType * conf, FlagType * flag )
     
     curtime = time(NULL);  //get time in seconds since epoch (1/1/1970)	
     loctime = localtime(&curtime);
-    day = loctime->tm_mday;
-    month = loctime->tm_mon +1;
-    year = loctime->tm_year + 1900;
-    hour = loctime->tm_hour;
-    minute = loctime->tm_min; 
-    second = loctime->tm_sec; 
-    sprintf( conf->dateto, "%04d-%02d-%02d %02d:%02d:00", year, month, day, hour, minute );
+    const int day = loctime->tm_mday;
+    const int month = loctime->tm_mon +1;
+    const int year = loctime->tm_year + 1900;
+    const int hour = loctime->tm_hour;
+    const int minute = loctime->tm_min; 
+    const int second = loctime->tm_sec; 
+    sprintf( conf->dateto, "%04d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second );
     flag->daterange=1;
     if( flag->verbose == 1 ) printf( "Auto set dates from %s to %s\n", conf->datefrom, conf->dateto );
     return 1;
@@ -1055,7 +1044,7 @@ InitReturnKeys( ConfType * conf )
    ReturnType   tmp;
    ReturnType   *returnkeylist;
    int		num_return_keys=0;
-   int		i, j, reading, data_follows;
+   int		data_follows;
 
    data_follows = 0;
 
@@ -1085,7 +1074,6 @@ InitReturnKeys( ConfType * conf )
                     tmp.datalength=0;
                     tmp.recordgap=0;
                     tmp.persistent=1;
-                    reading=0;
                     if( sscanf( line, "%x %x \"%[^\"]\" \"%[^\"]\" %d %d %d %d", &tmp.key1, &tmp.key2, tmp.description, tmp.units, &tmp.decimal, &tmp.recordgap, &tmp.datalength, &tmp.persistent ) == 8 ) {
                               
                         if( (num_return_keys) == 0 )
@@ -1370,7 +1358,6 @@ int GetInverterSetting( ConfType *conf, FlagType * flag )
     char	line[400];
     char	variable[400];
     char	value[400];
-    int		found_inverter=0;
 
     if (strlen(conf->Setting) > 0 )
     {
@@ -1398,6 +1385,7 @@ int GetInverterSetting( ConfType *conf, FlagType * flag )
                 if( value[0] != '\0' )
                 {
                     /*
+                    int found_inverter=0;
                     if( strcmp( variable, "Inverter" ) == 0 )
                     {
                        if( strcmp( value, conf->Inverter ) == 0 )
@@ -1464,14 +1452,10 @@ getnodeset (xmlDocPtr doc, xmlChar *xpath){
 	return result;
 }
 
-int
-setup_xml_xpath( ConfType *conf, xmlChar * xpath, char * docname, int index )
+void setup_xml_xpath( ConfType *conf, xmlChar * xpath, char * docname, int index )
 {
-    int len;
-
     sprintf( xpath, "//Datamap/Map[@index='%d']", index );
     sprintf( docname, "%s", "/usr/local/bin/smatool.xml" );
-    return (1);
 }
 
 char *
@@ -1710,21 +1694,16 @@ char * debugdate()
 int main(int argc, char **argv)
 {
     FILE 		*fp;
-    unsigned char 	* last_sent;
     ConfType 		conf;
     FlagType 		flag;
     int 		maximumUnits=1;
     UnitType 		*unit;
-    ReadRecordType 	readRecord;
-    ReturnType 		*returnkeylist;
-    unsigned char 	received[1024];
     int			i,s;
-    int 		install=0, update=0, already_read=0, no_dark=0;
+    int 		install=0, update=0, no_dark=0;
     int 		error=0;
     int 		max_output;
     char 		compurl[400];  //seg error on curl fix 2012.01.14
     unsigned char 	tzhex[2] = { 0 };
-    time_t 		reporttime;
     MYSQL_ROW 		row, row1;
     char 		SQLQUERY[200];
     int			archdatalen=0, livedatalen=0;
@@ -1741,10 +1720,7 @@ int main(int argc, char **argv)
         printf("Error allocating memory for line buffer.");
         exit(1);
     }
-    memset(received,0,1024);
-    last_sent = (unsigned  char *)malloc( sizeof( unsigned char ));
     /* get the report time - used in various places */
-    reporttime = time(NULL);  //get time in seconds since epoch (1/1/1970)	
    
     // set config to defaults
     InitConfig( &conf );
@@ -1774,7 +1750,7 @@ int main(int argc, char **argv)
         exit(0);
     }
     // Get Return Value lookup from file
-    returnkeylist = InitReturnKeys( &conf );
+    InitReturnKeys( &conf );
     // Set value for inverter type
     
     SetInverterType( &conf, &unit );
