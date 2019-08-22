@@ -130,9 +130,9 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
    float ptotal;
    float strength;
    int   found, already_read, terminated;
-   int   gap, return_key, datalength=0;
+   int   return_key, datalength=0;
    int   crc_at_end;
-   int	 pass_i, send_count;
+   int	 pass_i, send_count = 0;
    int	 persistent;
    int index;
    unsigned long long inverter_serial;
@@ -656,14 +656,16 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
                         if(( data = ReadStream( conf, flag, &readRecord, s, received, &rr, data, &datalen, last_sent, cc, &terminated, &togo )) != NULL )
                         {
                            //printf( "\ndata=%02x:%02x:%02x:%02x:%02x:%02x\n", data[0], (data+1)[0], (data+2)[0], (data+3)[0], (data+4)[0], (data+5)[0] );
-                            if( (data+3)[0] == 0x08 )
-                                gap = 40; 
-                            if( (data+3)[0] == 0x10 )
-                                gap = 40; 
-                            if( (data+3)[0] == 0x40 )
-                                gap = 28;
-                            if( (data+3)[0] == 0x00 )
-                                gap = 28;
+                            int gap;
+                            switch (data[3])
+                            {
+                                case 0x08: gap = 40; break;
+                                case 0x10: gap = 40; break;
+                                case 0x40: gap = 28; break;
+                                case 0x00: gap = 28; break;
+                                default:
+                                    abort();
+                            }
                             for ( i = 0; i<datalen; i+=gap ) 
                             {
                                 idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second );
@@ -857,14 +859,16 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
                                 if(( data = ReadStream( conf, flag,  &readRecord, s, received, &rr, data, &datalen, last_sent, cc, &terminated, &togo )) != NULL )
                                 {
                                     if( flag->debug==1 ) printf( "data=%02x\n",(data+3)[0] );
-                                    if( (data+3)[0] == 0x08 )
-                                        gap = 40; 
-                                    if( (data+3)[0] == 0x10 )
-                                        gap = 40; 
-                                    if( (data+3)[0] == 0x40 )
-                                        gap = 28;
-                                    if( (data+3)[0] == 0x00 )
-                                        gap = 28;
+                                    int gap;
+                                    switch (data[3])
+                                    {
+                                        case 0x08: gap = 40; break;
+                                        case 0x10: gap = 40; break;
+                                        case 0x40: gap = 28; break;
+                                        case 0x00: gap = 28; break;
+                                        default:
+                                            abort();
+                                    }
                                     for ( i = 0; i<datalen; i+=gap ) 
                                     {
                                        idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second  );
@@ -895,7 +899,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
 			    case 28: // extract data $DATA
                                 if(( data = ReadStream( conf, flag, &readRecord, s, received, &rr, data, &datalen, last_sent, cc, &terminated, &togo )) != NULL )
                                 {
-                                    gap = 0;
+                                    int gap = 0;
                                     return_key=-1;
                                     for( j=0; j<conf->num_return_keys; j++ )
                                     {
@@ -1040,6 +1044,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
  	}
            }
     } 
+    return 0;
 }
 /*
  * Run a command on an inverter

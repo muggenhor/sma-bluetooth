@@ -1042,7 +1042,7 @@ InitReturnKeys( ConfType * conf )
    FILE		*fp;
    char		line[400];
    ReturnType   tmp;
-   ReturnType   *returnkeylist;
+   ReturnType   *returnkeylist = NULL;
    int		num_return_keys=0;
    int		data_follows;
 
