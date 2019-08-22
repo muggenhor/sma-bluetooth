@@ -1319,6 +1319,8 @@ int GetConfig( ConfType *conf, FlagType * flag )
                 {
                     if( strcmp( variable, "BTAddress" ) == 0 )
                        strcpy( conf->BTAddress, value );  
+                    if( strcmp( variable, "Xml" ) == 0 )
+                       strcpy( conf->Xml, value );  
                     if( strcmp( variable, "BTTimeout" ) == 0 )
                        conf->bt_timeout =  atoi(value);  
                     if( strcmp( variable, "Password" ) == 0 )
@@ -1455,7 +1457,7 @@ getnodeset (xmlDocPtr doc, xmlChar *xpath){
 void setup_xml_xpath( ConfType *conf, xmlChar * xpath, char * docname, int index )
 {
     sprintf( (char*)xpath, "//Datamap/Map[@index='%d']", index );
-    sprintf( docname, "%s", "/usr/local/bin/smatool.xml" );
+    strcpy(docname, conf->Xml);
 }
 
 char *
