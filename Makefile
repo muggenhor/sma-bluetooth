@@ -1,6 +1,6 @@
 ARCH := $(shell getconf LONG_BIT)
 CPPFLAGS := -I/usr/include/libxml2
-CXXFLAGS := -std=c++11 -fstack-protector-all -g3 -O3 -Wall -Wextra -Werror -Wno-unused-result
+CXXFLAGS := -std=c++14 -fstack-protector-all -g3 -O3 -Wall -Wextra -Werror -Wno-unused-result
 
 all: smatool
 

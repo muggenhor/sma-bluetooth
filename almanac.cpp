@@ -203,20 +203,17 @@ int todays_almanac(const ConfType* conf, int debug)
 /*  Check if sunset and sunrise have been set today */
 {
     int	        found=0;
-    MYSQL_ROW 	row;
     char 	SQLQUERY[200];
 
-    MYSQL* conn = OpenMySqlDatabase( conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, conf->MySqlDatabase);
+    MySQL conn(conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, conf->MySqlDatabase);
     //Get Start of day value
     sprintf(SQLQUERY,"SELECT sunrise FROM Almanac WHERE date=DATE_FORMAT( NOW(), \"%%Y-%%m-%%d\" ) " );
     if (debug == 1) printf("%s\n",SQLQUERY);
-    MYSQL_RES* res = DoQuery(conn, SQLQUERY);
-    if ((row = mysql_fetch_row(res)))  //if there is a result, update the row
+    auto res = conn.fetch_query(SQLQUERY);
+    if (res.num_rows() > 0)  //if there is a result, update the row
     {
        found=1;
     }
-    mysql_free_result(res);
-    mysql_close(conn);
     return found;
 }
 
@@ -224,11 +221,9 @@ void update_almanac(const ConfType* conf, const char* sunrise, const char* sunse
 {
     char 	SQLQUERY[200];
 
-    MYSQL* conn = OpenMySqlDatabase(conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, conf->MySqlDatabase);
+    MySQL conn(conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, conf->MySqlDatabase);
     //Get Start of day value
     sprintf(SQLQUERY,"INSERT INTO Almanac SET sunrise=CONCAT(DATE_FORMAT( NOW(), \"%%Y-%%m-%%d \"),\"%s\"), sunset=CONCAT(DATE_FORMAT( NOW(), \"%%Y-%%m-%%d \"),\"%s\" ), date=NOW() ", sunrise, sunset );
     if (debug == 1) printf("%s\n",SQLQUERY);
-    MYSQL_RES* res = DoQuery(conn, SQLQUERY);
-    mysql_free_result(res);
-    mysql_close(conn);
+    conn.query(SQLQUERY);
 }

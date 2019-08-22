@@ -46,16 +46,15 @@ void sma_repost(const ConfType* conf, const FlagType* flag)
     char 	SQLQUERY[1000];
     char compurl[400];
     int	 update_data;
-    MYSQL_ROW row;
 
     /* Connect to database */
-    MYSQL* conn = OpenMySqlDatabase( conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, conf->MySqlDatabase );
+    MySQL conn(conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, conf->MySqlDatabase);
     //Get Start of day value
     printf("SELECT DATE_FORMAT( dt1.DateTime, \"%%Y%%m%%d\" ), round((dt1.ETotalToday*1000-dt2.ETotalToday*1000),0) FROM DayData as dt1 join DayData as dt2 on dt2.DateTime = DATE_SUB( dt1.DateTime, interval 1 day ) WHERE dt1.DateTime LIKE \"%%-%%-%% 23:55:00\" ' ORDER BY dt1.DateTime DESC" );
     sprintf(SQLQUERY,"SELECT DATE_FORMAT( dt1.DateTime, \"%%Y%%m%%d\" ), round((dt1.ETotalToday*1000-dt2.ETotalToday*1000),0) FROM DayData as dt1 join DayData as dt2 on dt2.DateTime = DATE_SUB( dt1.DateTime, interval 1 day ) WHERE dt1.DateTime LIKE \"%%-%%-%% 23:55:00\" ORDER BY dt1.DateTime DESC" );
     if (flag->debug == 1) printf("%s\n",SQLQUERY);
-    MYSQL_RES* res = DoQuery(conn, SQLQUERY);
-    while(( row = mysql_fetch_row(res) ))  //if there is a result, update the row
+    auto res = conn.fetch_query(SQLQUERY);
+    for (auto row = res.fetch_row(); row; res.fetch_row())
     {
         startforwait:
         fp=fopen( "/tmp/curl_output", "w+" );
@@ -118,7 +117,7 @@ void sma_repost(const ConfType* conf, const FlagType* flag)
                     {
                         sprintf(SQLQUERY,"UPDATE DayData set PVOutput=NOW() WHERE DateTime=\"%s235500\"  ", row[0] );
                         if (flag->debug == 1) printf("%s\n",SQLQUERY);
-			//mysql_real_query(conn, SQLQUERY, strlen(SQLQUERY));
+			//conn.query(SQLQUERY);
                     }
                     else
                         break;
@@ -127,6 +126,4 @@ void sma_repost(const ConfType* conf, const FlagType* flag)
         }
         fclose(fp);
     }
-    mysql_free_result(res);
-    mysql_close(conn);
 }

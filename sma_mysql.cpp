@@ -5,45 +5,84 @@
 #include <string.h>
 #include "sma_struct.hpp"
 #include <time.h>
+#include <stdexcept>
 
-
-MYSQL* OpenMySqlDatabase(const char* server, const char* user, const char* password, const char* database)
+MySQLResult::~MySQLResult()
 {
-  MYSQL* conn = mysql_init(NULL);
-   /* Connect to database */
-   if (!mysql_real_connect(conn, server,
-         user, password, database, 0, NULL, 0)) {
-      fprintf(stderr, "%s\n", mysql_error(conn));
-      exit(0);
-   }
-   return conn;
+  if (res)
+    mysql_free_result(res);
 }
 
-MYSQL_RES* DoQuery(MYSQL* conn, const char* query)
+MySQLResult& MySQLResult::operator=(MySQLResult&& rhs) noexcept
 {
-  /* execute query */
+  if (res)
+    mysql_free_result(res);
+  res = std::exchange(rhs.res, nullptr);
+  return *this;
+}
 
-  if (mysql_real_query(conn, query, strlen(query))) {
-    fprintf(stderr, "%s\n", mysql_error(conn));
-    return NULL;
-  }
-  return mysql_store_result(conn);
+unsigned long long MySQLResult::num_rows() const
+{
+  if (!res)
+    return 0;
+  return mysql_num_rows(res);
+}
+
+MYSQL_ROW MySQLResult::fetch_row()
+{
+  if (!res)
+    return nullptr;
+  return mysql_fetch_row(res);
+}
+
+MySQL::MySQL(const char* server, const char* user, const char* password, const char* database)
+  : conn(mysql_init(nullptr))
+{
+   /* Connect to database */
+   if (!mysql_real_connect(conn, server, user, password, database, 0, NULL, 0))
+     throw std::runtime_error(mysql_error(conn));
+}
+
+MySQL::~MySQL()
+{
+  if (conn)
+    mysql_close(conn);
+}
+
+MySQL& MySQL::operator=(MySQL&& rhs) noexcept
+{
+  if (conn)
+    mysql_close(conn);
+  conn = std::exchange(rhs.conn, nullptr);
+  return *this;
+}
+
+MySQLResult MySQL::fetch_query(const char* query)
+{
+  if (mysql_real_query(conn, query, strlen(query)))
+    throw std::runtime_error(mysql_error(conn));
+  return MySQLResult{mysql_store_result(conn)};
+}
+
+void MySQL::query(const char* query)
+{
+  if (mysql_real_query(conn, query, strlen(query)))
+    throw std::runtime_error(mysql_error(conn));
 }
 
 int install_mysql_tables(const ConfType* conf, const FlagType* flag, const char* SCHEMA)
 /*  Do initial mysql table creationsa */
 {
     int	        found=0;
-    MYSQL_ROW 	row;
     char 	SQLQUERY[1000];
 
-    MYSQL* conn = OpenMySqlDatabase( conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, "mysql");
+    MySQL conn( conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, "mysql");
     //Get Start of day value
     sprintf(SQLQUERY,"SHOW DATABASES" );
     if (flag->debug == 1) printf("%s\n",SQLQUERY);
 
-    MYSQL_RES* res = DoQuery(conn, SQLQUERY);
-    while ((row = mysql_fetch_row(res)))  //if there is a result, update the row
+    auto res = conn.fetch_query(SQLQUERY);
+    for (auto row = res.fetch_row(); row; row = res.fetch_row())  //if there is a result, update the row
     {
        if( strcmp( row[0], conf->MySqlDatabase ) == 0 )
        {
@@ -51,16 +90,15 @@ int install_mysql_tables(const ConfType* conf, const FlagType* flag, const char*
           printf( "Database exists - exiting" );
        }
     }
-    mysql_free_result(res);
     if( found == 0 )
     {
        sprintf( SQLQUERY,"CREATE DATABASE IF NOT EXISTS %s", conf->MySqlDatabase );
        if (flag->debug == 1) printf("%s\n",SQLQUERY);
-       mysql_real_query(conn, SQLQUERY, strlen(SQLQUERY));
+       conn.query(SQLQUERY);
 
        sprintf( SQLQUERY,"USE  %s", conf->MySqlDatabase );
        if (flag->debug == 1) printf("%s\n",SQLQUERY);
-       mysql_real_query(conn, SQLQUERY, strlen(SQLQUERY));
+       conn.query(SQLQUERY);
 
        sprintf( SQLQUERY,"CREATE TABLE `Almanac` ( `id` bigint(20) NOT NULL \
           AUTO_INCREMENT, \
@@ -73,7 +111,7 @@ int install_mysql_tables(const ConfType* conf, const FlagType* flag, const char*
            ) ENGINE=MyISAM" );
 
        if (flag->debug == 1) printf("%s\n",SQLQUERY);
-       mysql_real_query(conn, SQLQUERY, strlen(SQLQUERY));
+       conn.query(SQLQUERY);
   
        sprintf( SQLQUERY, "CREATE TABLE `DayData` ( \
            `DateTime` datetime NOT NULL, \
@@ -88,7 +126,7 @@ int install_mysql_tables(const ConfType* conf, const FlagType* flag, const char*
            ) ENGINE=MyISAM" );
 
        if (flag->debug == 1) printf("%s\n",SQLQUERY);
-       mysql_real_query(conn, SQLQUERY, strlen(SQLQUERY));
+       conn.query(SQLQUERY);
 
        sprintf( SQLQUERY, "CREATE TABLE `LiveData` ( \
            `id` bigint(20) NOT NULL  AUTO_INCREMENT, \
@@ -103,7 +141,7 @@ int install_mysql_tables(const ConfType* conf, const FlagType* flag, const char*
            UNIQUE KEY 'DateTime'(`DateTime`,`Inverter`,`Serial`,`Description`) \
            ) ENGINE=MyISAM" );
        if (flag->debug == 1) printf("%s\n",SQLQUERY);
-       mysql_real_query(conn, SQLQUERY, strlen(SQLQUERY));
+       conn.query(SQLQUERY);
 
        sprintf( SQLQUERY, "CREATE TABLE `settings` ( \
            `value` varchar(128) NOT NULL, \
@@ -112,15 +150,14 @@ int install_mysql_tables(const ConfType* conf, const FlagType* flag, const char*
            ) ENGINE=MyISAM" );
 
        if (flag->debug == 1) printf("%s\n",SQLQUERY);
-       mysql_real_query(conn, SQLQUERY, strlen(SQLQUERY));
+       conn.query(SQLQUERY);
         
        
        sprintf( SQLQUERY, "INSERT INTO `settings` SET `value` = \'schema\', `data` = \'%s\' ", SCHEMA );
 
        if (flag->debug == 1) printf("%s\n",SQLQUERY);
-       mysql_real_query(conn, SQLQUERY, strlen(SQLQUERY));
+       conn.query(SQLQUERY);
     }
-    mysql_close(conn);
 
     return found;
 }
@@ -129,40 +166,37 @@ void update_mysql_tables(const ConfType* conf, const FlagType* flag)
 /*  Do mysql table schema updates */
 {
     int		schema_value=0;
-    MYSQL_ROW 	row;
     char 	SQLQUERY[1000];
 
-    MYSQL* conn = OpenMySqlDatabase( conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, "mysql");
+    MySQL conn( conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, "mysql");
     sprintf( SQLQUERY,"USE  %s", conf->MySqlDatabase );
     if (flag->debug == 1) printf("%s\n",SQLQUERY);
-    mysql_real_query(conn, SQLQUERY, strlen(SQLQUERY));
+    conn.query(SQLQUERY);
     /*Check current schema value*/
     sprintf(SQLQUERY,"SELECT data FROM settings WHERE value=\'schema\' " );
     if (flag->debug == 1) printf("%s\n",SQLQUERY);
-    MYSQL_RES* res = DoQuery(conn, SQLQUERY);
-    if ((row = mysql_fetch_row(res)))  //if there is a result, update the row
+    auto res = conn.fetch_query(SQLQUERY);
+    if (auto row = res.fetch_row())  //if there is a result, update the row
     {
        schema_value=atoi(row[0]);
     }
-    mysql_free_result(res);
     if( schema_value == 1 ) { //Upgrade from 1 to 2
         sprintf(SQLQUERY,"ALTER TABLE `DayData` CHANGE `ETotalToday` `ETotalToday` DECIMAL(10,3) NULL DEFAULT NULL" );
         if (flag->debug == 1) printf("%s\n",SQLQUERY);
-        mysql_real_query(conn, SQLQUERY, strlen(SQLQUERY));
+        conn.query(SQLQUERY);
         sprintf( SQLQUERY, "UPDATE `settings` SET `value` = \'schema\', `data` = 2 " );
         if (flag->debug == 1) printf("%s\n",SQLQUERY);
-        mysql_real_query(conn, SQLQUERY, strlen(SQLQUERY));
+        conn.query(SQLQUERY);
     }
     /*Check current schema value*/
 
     sprintf(SQLQUERY,"SELECT data FROM settings WHERE value=\'schema\' " );
     if (flag->debug == 1) printf("%s\n",SQLQUERY);
-    res = DoQuery(conn, SQLQUERY);
-    if ((row = mysql_fetch_row(res)))  //if there is a result, update the row
+    res = conn.fetch_query(SQLQUERY);
+    if (auto row = res.fetch_row())  //if there is a result, update the row
     {
        schema_value=atoi(row[0]);
     }
-    mysql_free_result(res);
     if( schema_value == 2 ) { //Upgrade from 2 to 3
         sprintf(SQLQUERY,"CREATE TABLE `LiveData` ( \
 		`id` BIGINT NOT NULL AUTO_INCREMENT , \
@@ -177,46 +211,41 @@ void update_mysql_tables(const ConfType* conf, const FlagType* flag)
 		PRIMARY KEY ( `id` ) \
 		) ENGINE = MYISAM" );
         if (flag->debug == 1) printf("%s\n",SQLQUERY);
-        mysql_real_query(conn, SQLQUERY, strlen(SQLQUERY));
+        conn.query(SQLQUERY);
         sprintf( SQLQUERY, "UPDATE `settings` SET `value` = \'schema\', `data` = 3 " );
         if (flag->debug == 1) printf("%s\n",SQLQUERY);
-        mysql_real_query(conn, SQLQUERY, strlen(SQLQUERY));
+        conn.query(SQLQUERY);
     }
 
     if( schema_value == 3 ) { //Upgrade from 3 to 4
         sprintf(SQLQUERY,"ALTER TABLE `DayData` CHANGE `Inverter` `Inverter` varchar(30) NOT NULL, CHANGE `Serial` `Serial` varchar(40) NOT NULL" );
         if (flag->debug == 1) printf("%s\n",SQLQUERY);
-        mysql_real_query(conn, SQLQUERY, strlen(SQLQUERY));
+        conn.query(SQLQUERY);
         sprintf(SQLQUERY,"ALTER TABLE `LiveData` CHANGE `Inverter` `Inverter` varchar(30) NOT NULL, CHANGE `Serial` `Serial` varchar(40) NOT NULL, CHANGE `Description` `Description` varchar(30) NOT NULL, CHANGE `Value` `Value` varchar(30), CHANGE `Units` `Units` varchar(20) NULL DEFAULT NULL " );
         if (flag->debug == 1) printf("%s\n",SQLQUERY);
-        mysql_real_query(conn, SQLQUERY, strlen(SQLQUERY));
+        conn.query(SQLQUERY);
         sprintf( SQLQUERY, "UPDATE `settings` SET `value` = \'schema\', `data` = 4 " );
         if (flag->debug == 1) printf("%s\n",SQLQUERY);
-        mysql_real_query(conn, SQLQUERY, strlen(SQLQUERY));
+        conn.query(SQLQUERY);
     }
-    
-    mysql_close(conn);
 }
 
 int check_schema(const ConfType* conf, const FlagType* flag, const char* SCHEMA)
 /*  Check if using the correct database schema */
 {
     int	        found=0;
-    MYSQL_ROW 	row;
     char 	SQLQUERY[200];
 
-    MYSQL* conn = OpenMySqlDatabase( conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, conf->MySqlDatabase);
+    MySQL conn( conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, conf->MySqlDatabase);
     //Get Start of day value
     sprintf(SQLQUERY,"SELECT data FROM settings WHERE value=\'schema\' " );
     if (flag->debug == 1) printf("%s\n",SQLQUERY);
-    MYSQL_RES* res = DoQuery(conn, SQLQUERY);
-    if ((row = mysql_fetch_row(res)))  //if there is a result, update the row
+    auto res = conn.fetch_query(SQLQUERY);
+    if (auto row = res.fetch_row())  //if there is a result, update the row
     {
        if( strcmp( row[0], SCHEMA ) == 0 )
           found=1;
     }
-    mysql_free_result(res);
-    mysql_close(conn);
     if( found != 1 )
     {
        printf( "Please Update database schema use --UPDATE\n" );
@@ -234,9 +263,8 @@ void live_mysql(const ConfType* conf, const FlagType* flag, const LiveDataType* 
     int 	day,month,year,hour,minute,second;
     int		live_data=1;
     int		i;
-    MYSQL_ROW 	row;
  
-    MYSQL* conn = OpenMySqlDatabase(conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, conf->MySqlDatabase);
+    MySQL conn(conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, conf->MySqlDatabase);
     for( i=0; i<livedatalen; i++ ) {
         loctime = localtime(&(livedatalist+i)->date);
         day = loctime->tm_mday;
@@ -250,24 +278,21 @@ void live_mysql(const ConfType* conf, const FlagType* flag, const LiveDataType* 
         if( (livedatalist+i)->Persistent == 1 ) {
             sprintf( SQLQUERY, "SELECT IF (Value = \"%s\",NULL,Value) FROM LiveData where Inverter=\"%s\" and Serial=%llu and Description=\"%s\" ORDER BY DateTime DESC LIMIT 1", (livedatalist+i)->Value, (livedatalist+i)->inverter, (livedatalist+i)->serial, (livedatalist+i)->Description );
             if (flag->debug == 1) printf("%s\n",SQLQUERY);
-            MYSQL_RES* res = DoQuery(conn, SQLQUERY);
+            auto res = conn.fetch_query(SQLQUERY);
             if (res) {
-                if ((row = mysql_fetch_row(res)))  //if there is a result, update the row
+                if (auto row = res.fetch_row())  //if there is a result, update the row
                 {
                      if( row[0] == NULL ) {
                          live_data=0;
                      }
                 }
-                mysql_free_result(res);
             }
         }
         if( live_data==1 ) {
             sprintf(datetime, "%d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second );
             sprintf(SQLQUERY,"INSERT INTO LiveData ( DateTime, Inverter, Serial, Description, Value, Units ) VALUES ( \'%s\', \'%s\', %lld, \'%s\', \'%s\', \'%s\'  ) ON DUPLICATE KEY UPDATE DateTime=Datetime, Inverter=VALUES(Inverter), Serial=VALUES(Serial), Description=VALUES(Description), Description=VALUES(Description), Value=VALUES(Value), Units=VALUES(Units)", datetime, (livedatalist+i)->inverter, (livedatalist+i)->serial, (livedatalist+i)->Description, (livedatalist+i)->Value, (livedatalist+i)->Units);
             if (flag->debug == 1) printf("%s\n",SQLQUERY);
-            mysql_real_query(conn, SQLQUERY, strlen(SQLQUERY));
+            conn.query(SQLQUERY);
         }
     }
-    mysql_close(conn);
 }
-

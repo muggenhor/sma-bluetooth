@@ -878,24 +878,21 @@ unsigned char *  get_timezone_in_seconds( FlagType * flag, unsigned char *tzhex 
 int auto_set_dates( ConfType * conf, FlagType * flag )
 /*  If there are no dates set - get last updated date and go from there to NOW */
 {
-    MYSQL_ROW 	row;
     char 	SQLQUERY[200];
     time_t  	curtime;
     struct tm 	*loctime;
 
     if( flag->mysql == 1 )
     {
-        MYSQL* conn = OpenMySqlDatabase( conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, conf->MySqlDatabase);
+        MySQL conn(conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, conf->MySqlDatabase);
         //Get last updated value
         sprintf(SQLQUERY,"SELECT DATE_FORMAT( DateTime, \"%%Y-%%m-%%d %%H:%%i:%%S\" ) FROM DayData WHERE 1 ORDER BY DateTime DESC LIMIT 1" );
         if (flag->debug == 1) printf("%s\n",SQLQUERY);
-        MYSQL_RES* res = DoQuery(conn, SQLQUERY);
-        if ((row = mysql_fetch_row(res)))  //if there is a result, update the row
+        auto res = conn.fetch_query(SQLQUERY);
+        if (auto row = res.fetch_row())  //if there is a result, update the row
         {
            strcpy( conf->datefrom, row[0] );
         }
-        mysql_free_result( res );
-        mysql_close(conn);
     }
     if( strlen( conf->datefrom ) == 0 )
         strcpy( conf->datefrom, "2000-01-01 00:00:00" );
@@ -918,32 +915,28 @@ int is_light( ConfType * conf, FlagType * flag )
 /*  Check if all data done and past sunset or before sunrise */
 {
     int	        light=1;
-    MYSQL_ROW 	row;
     char 	SQLQUERY[200];
 
-    MYSQL* conn = OpenMySqlDatabase( conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, conf->MySqlDatabase);
+    MySQL conn(conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, conf->MySqlDatabase);
     //Get Start of day value
     sprintf(SQLQUERY,"SELECT if(sunrise < NOW(),1,0) FROM Almanac WHERE date= DATE_FORMAT( NOW(), \"%%Y-%%m-%%d\" ) " );
     if (flag->debug == 1) printf("%s\n",SQLQUERY);
-    MYSQL_RES* res = DoQuery(conn, SQLQUERY);
-    if ((row = mysql_fetch_row(res)))  //if there is a result, update the row
+    auto res = conn.fetch_query(SQLQUERY);
+    if (auto row = res.fetch_row())  //if there is a result, update the row
     {
        if( atoi( (char *)row[0] ) == 0 ) light=0;
     }
-    mysql_free_result(res);
     if( light ) {
        sprintf(SQLQUERY,"SELECT if( dd.datetime > al.sunset,1,0) FROM DayData as dd left join Almanac as al on al.date=DATE(dd.datetime) and al.date=DATE(NOW()) WHERE 1 ORDER BY dd.datetime DESC LIMIT 1" );
        if (flag->debug == 1) printf("%s\n",SQLQUERY);
-       res = DoQuery(conn, SQLQUERY);
-       if ((row = mysql_fetch_row(res)))  //if there is a result, update the row
+       res = conn.fetch_query(SQLQUERY);
+       if (auto row = res.fetch_row())  //if there is a result, update the row
        {
           if( atoi( (char *)row[0] ) == 1 ) light=0;
        }
-       mysql_free_result(res);
     }
     if (flag->debug == 1) printf("Before close: %s\n",SQLQUERY);
     
-    mysql_close(conn);
     return light;
 }
 
@@ -1696,7 +1689,6 @@ int main(int argc, char **argv)
     int 		max_output;
     char 		compurl[400];  //seg error on curl fix 2012.01.14
     unsigned char 	tzhex[2] = { 0 };
-    MYSQL_ROW 		row, row1;
     char 		SQLQUERY[200];
     int			archdatalen=0, livedatalen=0;
     ArchDataType 	*archdatalist=NULL;
@@ -1815,12 +1807,12 @@ int main(int argc, char **argv)
 
     if ((flag.post ==1)&&(flag.mysql==1)&&(error==0)){
 	/* Connect to database */
-        MYSQL* conn = OpenMySqlDatabase( conf.MySqlHost, conf.MySqlUser, conf.MySqlPwd, conf.MySqlDatabase );
+        MySQL conn(conf.MySqlHost, conf.MySqlUser, conf.MySqlPwd, conf.MySqlDatabase );
         for( i=1; i<archdatalen; i++ ) //Start at 1 as the first record is a dummy
         {
 	    sprintf(SQLQUERY,"INSERT INTO DayData ( DateTime, Inverter, Serial, CurrentPower, EtotalToday ) VALUES ( FROM_UNIXTIME(%ld),\'%s\',%llu,%0.f, %.3f ) ON DUPLICATE KEY UPDATE DateTime=Datetime, Inverter=VALUES(Inverter), Serial=VALUES(Serial), CurrentPower=VALUES(CurrentPower), EtotalToday=VALUES(EtotalToday)",(archdatalist+i)->date, (archdatalist+i)->inverter, (archdatalist+i)->serial, (archdatalist+i)->current_value, (archdatalist+i)->accum_value );
 	    if (flag.debug == 1) printf("%s\n",SQLQUERY);
-            mysql_real_query(conn, SQLQUERY, strlen(SQLQUERY));
+            conn.query(SQLQUERY);
             //getchar();
         }
 
@@ -1835,23 +1827,19 @@ int main(int argc, char **argv)
 	inverter_serial=(unit[0].Serial[0]<<24)+(unit[0].Serial[1]<<16)+(unit[0].Serial[2]<<8)+unit[0].Serial[3];
         sprintf(SQLQUERY,"SELECT Value FROM LiveData WHERE Inverter = \'%s\' and Serial=\'%lld\' and Description=\'Max Phase 1\' ORDER BY DateTime DESC LIMIT 1", unit[0].Inverter, inverter_serial  );
         if (flag.debug == 1) printf("%s\n",SQLQUERY); //getchar();
-        MYSQL_RES* res = DoQuery(conn, SQLQUERY);
+        auto res = conn.fetch_query(SQLQUERY);
  
-        if( mysql_num_rows(res) == 1 )
+        if (auto row = res.fetch_row())
         {
-            if ((row = mysql_fetch_row(res)))
-            {
-                max_output = atoi(row[0]) * 1.2;
-            }
+            max_output = atoi(row[0]) * 1.2;
         }
-        mysql_free_result( res );
         sprintf(SQLQUERY,"SELECT DATE_FORMAT(dd1.DateTime,\'%%Y%%m%%d\'), DATE_FORMAT(dd1.DateTime,\'%%H:%%i\'), ROUND((dd1.ETotalToday-dd2.EtotalToday)*1000), if( dd1.CurrentPower < %d ,dd1.CurrentPower, %d ), dd1.DateTime FROM DayData as dd1 join DayData as dd2 on dd2.DateTime=DATE_FORMAT(dd1.DateTime,\'%%Y-%%m-%%d 00:00:00\') WHERE dd1.DateTime>=Date_Sub(CURDATE(),INTERVAL 13 DAY) and dd1.PVOutput IS NULL and dd1.CurrentPower>0 ORDER BY dd1.DateTime ASC", max_output, max_output );
         if (flag.debug == 1) printf("%s\n",SQLQUERY);
-        res = DoQuery(conn, SQLQUERY);
+        res = conn.fetch_query(SQLQUERY);
         batch_count=0;
-        if( mysql_num_rows(res) == 1 )
+        if (res.num_rows() == 1)
         {
-            if ((row = mysql_fetch_row(res)))  //Need to update these
+            if (auto row = res.fetch_row())  //Need to update these
             {
 	        sprintf(compurl,"%s?d=%s&t=%s&v1=%s&v2=%s&key=%s&sid=%s",conf.PVOutputURL,row[0],row[1],row[2],row[3],conf.PVOutputKey,conf.PVOutputSid);
 	        if (flag.debug == 1) printf("url = %s\n",compurl); 
@@ -1868,7 +1856,7 @@ int main(int argc, char **argv)
                         {
                             sprintf(SQLQUERY,"UPDATE DayData  set PVOutput=NOW() WHERE DateTime=\"%s\"  ", row[4] );
                             if (flag.debug == 1) printf("%s\n",SQLQUERY);
-                            mysql_real_query(conn, SQLQUERY, strlen(SQLQUERY));
+                            conn.query(SQLQUERY);
                         }
 	            }
                 }
@@ -1876,7 +1864,7 @@ int main(int argc, char **argv)
         }
         else
         {
-            while ((row = mysql_fetch_row(res)))  //Need to update these
+            for (auto row = res.fetch_row(); row; row = res.fetch_row())  //Need to update these
             {
                 sleep(2);
                 if( batch_count > 0 )
@@ -1900,14 +1888,13 @@ int main(int argc, char **argv)
                         {
                            sprintf(SQLQUERY,"SELECT DATE_FORMAT(dd1.DateTime,\'%%Y%%m%%d\'), DATE_FORMAT(dd1.DateTime,\'%%H:%%i\'), ROUND((dd1.ETotalToday-dd2.EtotalToday)*1000), dd1.CurrentPower, dd1.DateTime FROM DayData as dd1 join DayData as dd2 on dd2.DateTime=DATE_FORMAT(dd1.DateTime,\'%%Y-%%m-%%d 00:00:00\') WHERE dd1.DateTime>=Date_Sub(CURDATE(),INTERVAL 13 DAY) and dd1.PVOutput IS NULL and dd1.CurrentPower>0 ORDER BY dd1.DateTime ASC limit %d", batch_count );
                            if (flag.debug == 1) printf("%s\n",SQLQUERY);
-                           MYSQL_RES* res1 = DoQuery(conn, SQLQUERY);
-                           while ((row1 = mysql_fetch_row(res1)))  //Need to update these
+                           auto res1 = conn.fetch_query(SQLQUERY);
+                           for (auto row1 = res1.fetch_row(); row1; row1 = res1.fetch_row())  //Need to update these
                            {
                                sprintf(SQLQUERY,"UPDATE DayData set PVOutput=NOW() WHERE DateTime=\"%s\"  ", row1[4] );
                                if (flag.debug == 1) printf("%s\n",SQLQUERY);
-                               mysql_real_query(conn, SQLQUERY, strlen(SQLQUERY));
+                               conn.query(SQLQUERY);
                            }
-                           mysql_free_result( res1 );
                         }
                         else
                             break;
@@ -1932,21 +1919,18 @@ int main(int argc, char **argv)
                     {
                        sprintf(SQLQUERY,"SELECT DATE_FORMAT(dd1.DateTime,\'%%Y%%m%%d\'), DATE_FORMAT(dd1.DateTime,\'%%H:%%i\'), ROUND((dd1.ETotalToday-dd2.EtotalToday)*1000), dd1.CurrentPower, dd1.DateTime FROM DayData as dd1 join DayData as dd2 on dd2.DateTime=DATE_FORMAT(dd1.DateTime,\'%%Y-%%m-%%d 00:00:00\') WHERE dd1.DateTime>=Date_Sub(CURDATE(),INTERVAL 1 DAY) and dd1.PVOutput IS NULL and dd1.CurrentPower>0 ORDER BY dd1.DateTime ASC limit %d", batch_count );
                        if (flag.debug == 1) printf("%s\n",SQLQUERY);
-                       MYSQL_RES* res1 = DoQuery(conn, SQLQUERY);
-                       while ((row1 = mysql_fetch_row(res1)))  //Need to update these
+                       auto res1 = conn.fetch_query(SQLQUERY);
+                       for (auto row1 = res1.fetch_row(); row1; row1 = res1.fetch_row())  //Need to update these
                        {
                            sprintf(SQLQUERY,"UPDATE DayData set PVOutput=NOW() WHERE DateTime=\"%s\"  ", row1[4] );
                            if (flag.debug == 1) printf("%s\n",SQLQUERY);
-                           mysql_real_query(conn, SQLQUERY, strlen(SQLQUERY));
+                           conn.query(SQLQUERY);
                        }
-                       mysql_free_result( res1 );
                     }
 	        }
                 batch_count = 0;
             }
         }
-        mysql_free_result( res );
-        mysql_close(conn);
     }
 
     if( archdatalen > 0 )
