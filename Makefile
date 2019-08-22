@@ -1,6 +1,6 @@
 ARCH := $(shell getconf LONG_BIT)
 CPPFLAGS := -I/usr/include/libxml2
-CFLAGS := -g3 -O3 -Werror=implicit-function-declaration -Werror=int-conversion -Werror=incompatible-pointer-types
+CFLAGS := -g3 -O3 -Wall -Werror -Wno-unused-result
 
 all: smatool
 

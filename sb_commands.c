@@ -681,7 +681,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
                                 if( return_key >= 0 )
 				{
 				    printf("%d-%02d-%02d %02d:%02d:%02d %-20s = %.0f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
-				    inverter_serial=unit[0]->Serial[3]<<24+unit[0]->Serial[2]<<16+unit[0]->Serial[1]<<8+unit[0]->Serial[0];
+				    inverter_serial = (unit[0]->Serial[3]<<24) + (unit[0]->Serial[2]<<16) + (unit[0]->Serial[1]<<8) + (unit[0]->Serial[0]);
                                 }
                                 else
                                     if( (data+0)[0] > 0 )
