@@ -454,8 +454,8 @@ check_send_error( FlagType * flag, int *s, int *rr, unsigned char *received, int
     return 0;
 }
 
-int
-empty_read_bluetooth(  ConfType * conf, FlagType * flag, ReadRecordType * readRecord, int *s, int *rr, unsigned char *received, int cc, unsigned char *last_sent, int *terminated )
+int empty_read_bluetooth(FlagType* flag, ReadRecordType* readRecord, int* s, int* rr, unsigned char* received,
+                         int* terminated)
 {
     int bytes_read,i,j, last_decoded;
     unsigned char buf[1024]; /*read buffer*/
@@ -1196,7 +1196,7 @@ void  SetSwitches( ConfType *conf, FlagType *flag )
 }
 
 unsigned char *
-ReadStream( ConfType * conf, FlagType * flag, ReadRecordType * readRecord, int * s, unsigned char * stream, int * streamlen, unsigned char * datalist, int * datalen, unsigned char * last_sent, int cc, int * terminated, int * togo )
+ReadStream( ConfType * conf, FlagType * flag, ReadRecordType * readRecord, int * s, unsigned char * stream, int * streamlen, int * datalen, unsigned char * last_sent, int cc, int * terminated, int * togo )
 {
    int	finished;
    int	finished_record;
@@ -1206,7 +1206,7 @@ ReadStream( ConfType * conf, FlagType * flag, ReadRecordType * readRecord, int *
    if( flag->debug==1 ) printf( "togo=%d\n", (*togo) );
    i=59; //Initial position of data stream
    (*datalen)=0;
-   datalist=(unsigned char *)malloc(sizeof(char));
+   unsigned char* datalist=(unsigned char *)malloc(sizeof(char));
    finished=0;
    finished_record=0;
    while( finished != 1 ) {

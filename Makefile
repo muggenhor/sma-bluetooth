@@ -1,6 +1,6 @@
 ARCH := $(shell getconf LONG_BIT)
 CPPFLAGS := -I/usr/include/libxml2
-CFLAGS := -g3 -O3 -Wall -Werror -Wno-unused-result
+CFLAGS := -g3 -O3 -Wall -Wextra -Werror -Wno-unused-result -Wno-sign-compare
 
 all: smatool
 

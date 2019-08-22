@@ -116,6 +116,7 @@ char *  sunrise( ConfType *conf, int debug )
 
 char * sunset( ConfType *conf, int debug )
 {
+   (void)debug;
    //adapted from http://williams.best.vwh.net/sunrise_sunset_algorithm.htm
    time_t curtime;
    struct tm *loctime;
@@ -173,10 +174,14 @@ char * sunset( ConfType *conf, int debug )
    //calculate the Sun's local hour angle
    cosH = (cos((pi/180)*zenith) - (sinDec * sin((pi/180)*latitude))) / (cosDec * cos((pi/180)*latitude));
 	
-   if (cosH >  1); 
+   if (cosH >  1)
+   {
 	  //the sun never rises on this location (on the specified date)
-   if (cosH < -1);
+   }
+   if (cosH < -1)
+   {
 	  //the sun never sets on this location (on the specified date)
+   }
    //finish calculating H and convert into hours
    H = (180/pi)*acos(cosH);
    H = H/15;

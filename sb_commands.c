@@ -54,7 +54,7 @@ int ConnectSocket ( ConfType * conf )
 /*
  * Update internal running list with live data for later processing
  */
-int UpdateLiveList( ConfType * conf, FlagType * flag,  UnitType *unit, char * format, time_t idate,  char * description, float fvalue, int ivalue, char * svalue, char * units, int persistent, int * livedatalen, LiveDataType ** livedatalist )
+static int UpdateLiveList(FlagType * flag,  UnitType *unit, char * format, time_t idate,  char * description, float fvalue, int ivalue, char * svalue, char * units, int persistent, int * livedatalen, LiveDataType ** livedatalist)
 {
     unsigned long long 	inverter_serial;
 
@@ -248,7 +248,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
     }
     if(!strcmp(lineread,"S")){		//See if line is something we need to send
         //Empty the receive data ready for new command
-        while( ((*linenum)>22)&&( empty_read_bluetooth( conf, flag, &readRecord, s, &rr, received, cc, last_sent, &terminated ) >= 0 ));
+        while( ((*linenum)>22)&&( empty_read_bluetooth(flag, &readRecord, s, &rr, received, &terminated ) >= 0 ));
 	if (flag->debug	== 1) printf("[%d] %s Sending\n", (*linenum),debugdate());
 	cc = 0;
 	do{
@@ -653,7 +653,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
 			//printf("Current power = %i Watt\n",currentpower);
 			break;
 		    case 5: // extract current power $POW
-                        if(( data = ReadStream( conf, flag, &readRecord, s, received, &rr, data, &datalen, last_sent, cc, &terminated, &togo )) != NULL )
+                        if(( data = ReadStream( conf, flag, &readRecord, s, received, &rr, &datalen, last_sent, cc, &terminated, &togo )) != NULL )
                         {
                            //printf( "\ndata=%02x:%02x:%02x:%02x:%02x:%02x\n", data[0], (data+1)[0], (data+2)[0], (data+3)[0], (data+4)[0], (data+5)[0] );
                             int gap;
@@ -755,7 +755,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
 			break;
 
 		    case 17: // Test data
-                        if(( data = ReadStream( conf, flag,  &readRecord, s, received, &rr, data, &datalen, last_sent, cc, &terminated, &togo )) != NULL )
+                        if(( data = ReadStream( conf, flag,  &readRecord, s, received, &rr, &datalen, last_sent, cc, &terminated, &togo )) != NULL )
                         {
                             printf( "\n" );
                         
@@ -772,7 +772,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
                         idate=0;
                         printf( "\n" );
                         while( finished != 1 ) {
-                            if(( data = ReadStream( conf, flag,  &readRecord, s, received, &rr, data, &datalen, last_sent, cc, &terminated, &togo )) != NULL )
+                            if(( data = ReadStream( conf, flag,  &readRecord, s, received, &rr, &datalen, last_sent, cc, &terminated, &togo )) != NULL )
                             {
                                 j=0;
                                 for( i=0; i<datalen; i++ )
@@ -856,7 +856,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
                                 
 				break;
 			    case 24: // Inverter data $INVERTERDATA
-                                if(( data = ReadStream( conf, flag,  &readRecord, s, received, &rr, data, &datalen, last_sent, cc, &terminated, &togo )) != NULL )
+                                if(( data = ReadStream( conf, flag,  &readRecord, s, received, &rr, &datalen, last_sent, cc, &terminated, &togo )) != NULL )
                                 {
                                     if( flag->debug==1 ) printf( "data=%02x\n",(data+3)[0] );
                                     int gap;
@@ -897,7 +897,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
                                     //An Error has occurred
                                     break;
 			    case 28: // extract data $DATA
-                                if(( data = ReadStream( conf, flag, &readRecord, s, received, &rr, data, &datalen, last_sent, cc, &terminated, &togo )) != NULL )
+                                if(( data = ReadStream( conf, flag, &readRecord, s, received, &rr, &datalen, last_sent, cc, &terminated, &togo )) != NULL )
                                 {
                                     int gap = 0;
                                     return_key=-1;
@@ -937,7 +937,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
                                                else
                                                    persistent = conf->returnkeylist[return_key].persistent;
 		       			       printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.0f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
-                                               UpdateLiveList( conf, flag, unit[0], "%.0f",  idate, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, -1, (char *)NULL, conf->returnkeylist[return_key].units, persistent, livedatalen, livedatalist );
+                                               UpdateLiveList(flag, unit[0], "%.0f",  idate, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, -1, (char *)NULL, conf->returnkeylist[return_key].units, persistent, livedatalen, livedatalist );
 					       break;
         				   case 1 :
                                                ConvertStreamtoFloat( data+i+8, datalength, &currentpower_total );
@@ -946,7 +946,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
                                                else
                                                    persistent = conf->returnkeylist[return_key].persistent;
 		       			       printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.1f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
-                                               UpdateLiveList( conf, flag, unit[0], "%.1f",  idate, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, -1, (char *)NULL, conf->returnkeylist[return_key].units, persistent, livedatalen, livedatalist );
+                                               UpdateLiveList(flag, unit[0], "%.1f",  idate, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, -1, (char *)NULL, conf->returnkeylist[return_key].units, persistent, livedatalen, livedatalist );
 					       break;
         				   case 2 :
                                                ConvertStreamtoFloat( data+i+8, datalength, &currentpower_total );
@@ -955,7 +955,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
                                                else
                                                    persistent = conf->returnkeylist[return_key].persistent;
 		       			       printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.2f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
-                                               UpdateLiveList( conf, flag, unit[0], "%.2f",  idate, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, -1, (char *)NULL, conf->returnkeylist[return_key].units, persistent, livedatalen, livedatalist );
+                                               UpdateLiveList(flag, unit[0], "%.2f",  idate, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, -1, (char *)NULL, conf->returnkeylist[return_key].units, persistent, livedatalen, livedatalist );
 					       break;
         				   case 3 :
                                                ConvertStreamtoFloat( data+i+8, datalength, &currentpower_total );
@@ -964,7 +964,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
                                                else
                                                    persistent = conf->returnkeylist[return_key].persistent;
 		       			       printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.3f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
-                                               UpdateLiveList( conf, flag, unit[0], "%.3f",  idate, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, -1, (char *)NULL, conf->returnkeylist[return_key].units, persistent, livedatalen, livedatalist );
+                                               UpdateLiveList(flag, unit[0], "%.3f",  idate, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, -1, (char *)NULL, conf->returnkeylist[return_key].units, persistent, livedatalen, livedatalist );
 					       break;
         				   case 4 :
                                                ConvertStreamtoFloat( data+i+8, datalength, &currentpower_total );
@@ -973,14 +973,14 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
                                                else
                                                    persistent = conf->returnkeylist[return_key].persistent;
 		       			       printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.4f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
-                                               UpdateLiveList( conf, flag, unit[0], "%.4f",  idate, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, -1, (char *)NULL, conf->returnkeylist[return_key].units, persistent, livedatalen, livedatalist );
+                                               UpdateLiveList(flag, unit[0], "%.4f",  idate, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, -1, (char *)NULL, conf->returnkeylist[return_key].units, persistent, livedatalen, livedatalist );
 					       break;
                                            case 97 :
 
                                                idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second  );
 		       			       printf("                    %-30s = %d-%02d-%02d %02d:%02d:%02d\n", conf->returnkeylist[return_key].description, year, month, day, hour, minute, second );
                                                sprintf( valuebuf, "%d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second );
-                                               UpdateLiveList( conf, flag, unit[0], "%s",  idate, conf->returnkeylist[return_key].description, -1.0, -1, valuebuf, conf->returnkeylist[return_key].units, conf->returnkeylist[return_key].persistent, livedatalen, livedatalist );
+                                               UpdateLiveList(flag, unit[0], "%s",  idate, conf->returnkeylist[return_key].description, -1.0, -1, valuebuf, conf->returnkeylist[return_key].units, conf->returnkeylist[return_key].persistent, livedatalen, livedatalist );
 
                                                break;
         				   case 98 :
@@ -988,7 +988,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
                                                ConvertStreamtoInt( data+i+8, 2, &index );
                                                datastring = return_xml_data( conf, index );
 		       			       printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %s %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, datastring, conf->returnkeylist[return_key].units );
-                                               UpdateLiveList( conf, flag, unit[0], "%s",  idate, conf->returnkeylist[return_key].description, -1.0, -1, datastring, conf->returnkeylist[return_key].units, conf->returnkeylist[return_key].persistent, livedatalen, livedatalist );
+                                               UpdateLiveList(flag, unit[0], "%s",  idate, conf->returnkeylist[return_key].description, -1.0, -1, datastring, conf->returnkeylist[return_key].units, conf->returnkeylist[return_key].persistent, livedatalen, livedatalist );
                                                if( (data+i+1)[0]==0x20 && (data+i+2)[0] == 0x82 ) {
                                                     strcpy( unit[0]->Inverter, datastring );
                                                }
@@ -998,7 +998,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
                                                idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second  );
                                                datastring = ConvertStreamtoString( data+i+8, datalength );
 		       			       printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %s %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, datastring, conf->returnkeylist[return_key].units );
-                                               UpdateLiveList( conf, flag, unit[0], "%s",  idate, conf->returnkeylist[return_key].description, -1.0, -1, datastring, conf->returnkeylist[return_key].units, conf->returnkeylist[return_key].persistent, livedatalen, livedatalist );
+                                               UpdateLiveList(flag, unit[0], "%s",  idate, conf->returnkeylist[return_key].description, -1.0, -1, datastring, conf->returnkeylist[return_key].units, conf->returnkeylist[return_key].persistent, livedatalen, livedatalist );
                                                
                                                free( datastring );
 					       break;
