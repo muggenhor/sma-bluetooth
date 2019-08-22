@@ -31,12 +31,9 @@
 #include "sma_struct.h"
 #include "sma_mysql.h"
 
-size_t write_data(void *ptr, size_t size, size_t nmemb, void *stream) 
+size_t write_data(char* ptr, size_t size, size_t nmemb, void* stream)
 {
-    size_t written;
-
-    written = fwrite(ptr, size, nmemb, stream);
-    return written;
+    return fwrite(ptr, size, nmemb, (FILE*)stream);
 }
 
 void sma_repost( ConfType * conf, FlagType * flag )
