@@ -1,3 +1,6 @@
+#define _XOPEN_SOURCE 700
+
+#include "sb_commands.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,7 +12,9 @@
 #include <errno.h>
 #include "sma_mysql.h"
 #include "smatool.h"
+#include <unistd.h>
 
+static int GetLine(const char* command, FILE* fp);
 
 int ConnectSocket ( ConfType * conf )
 {
@@ -1091,7 +1096,7 @@ int OpenInverter( ConfType * conf, FlagType * flag, UnitType **unit, int * s, Ar
  * Get Line number of the command required
  * reurn line number on success 0 on failure
  */
-int GetLine( const char * command, FILE * fp )
+static int GetLine( const char * command, FILE * fp )
 {
     char *line = NULL;
     size_t len=0;

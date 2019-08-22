@@ -17,7 +17,7 @@
 
 /* compile gcc -lbluetooth -lcurl -lmysqlclient -g -o smatool smatool.c */
 
-#define _XOPEN_SOURCE /* glibc needs this */
+#define _XOPEN_SOURCE 700 /* glibc needs this */
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -36,6 +36,8 @@
 #include <libxml2/libxml/parser.h>
 #include <libxml2/libxml/xpath.h>
 #include "smatool.h"
+#include "almanac.h"
+#include "sb_commands.h"
 
 /*
  * u16 represents an unsigned 16-bit number.  Adjust the typedef for
@@ -47,8 +49,6 @@ typedef u_int16_t u16;
 #define PPPGOODFCS16 0xf0b8 /* Good final FCS value */
 #define ASSERT(x) assert(x)
 #define SCHEMA "4"  /* Current database schema */
-#define _XOPEN_SOURCE /* glibc2 needs this */
-
 
 char *accepted_strings[] = {
 "$END",
@@ -1783,11 +1783,11 @@ int main(int argc, char **argv)
     // Location based information to avoid quering Inverter in the dark
     if((flag.location==1)&&(flag.mysql==1)) {
         if( flag.debug == 1 ) printf( "Before todays Almanac\n" ); 
-        if( ! todays_almanac( &conf ) ) {
-           sprintf( sunrise_time, "%s", sunrise(&conf ));
-           sprintf( sunset_time, "%s", sunset(&conf ));
+        if( ! todays_almanac( &conf, flag.debug ) ) {
+           sprintf( sunrise_time, "%s", sunrise(&conf, flag.debug));
+           sprintf( sunset_time, "%s", sunset(&conf, flag.debug));
            if( flag.verbose==1) printf( "sunrise=%s sunset=%s\n", sunrise_time, sunset_time );
-           update_almanac(  &conf, sunrise_time, sunset_time );
+           update_almanac(&conf, sunrise_time, sunset_time, flag.debug);
         }
     }
     if( flag.mysql==1 ) { 
@@ -1805,7 +1805,7 @@ int main(int argc, char **argv)
     {
 	if (flag.debug ==1) printf("Address %s\n",conf.BTAddress);
         //Connect to Inverter
-        if ((s = ConnectSocket( &conf, &flag )) < 0 )
+        if ((s = ConnectSocket(&conf)) < 0 )
            exit( -1 );
 
         if (flag.file ==1)
