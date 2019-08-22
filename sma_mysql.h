@@ -1,4 +1,7 @@
+#pragma once
+
 #include <mysql/mysql.h>
+#include "sma_struct.h"
 
 extern MYSQL *conn;
 extern MYSQL_RES *res;

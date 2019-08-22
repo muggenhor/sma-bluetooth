@@ -8,15 +8,7 @@
 #include <bluetooth/rfcomm.h>
 #include <errno.h>
 #include "sma_mysql.h"
-
-
-
-extern unsigned char * ReadStream( ConfType *, FlagType *, ReadRecordType *, int *, unsigned char *, int *, unsigned char *, int *, unsigned char *, int , int *, int * );
-extern char * return_xml_data( ConfType *,int );
-extern long ConvertStreamtoLong( unsigned char *, int, unsigned long * );
-extern float ConvertStreamtoFloat( unsigned char *, int, float * );
-extern char * ConvertStreamtoString( unsigned char *, int );
-extern unsigned char conv( char * );
+#include "smatool.h"
 
 
 int ConnectSocket ( ConfType * conf )

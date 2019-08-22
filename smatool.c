@@ -35,7 +35,7 @@
 #include "sma_mysql.h"
 #include <libxml2/libxml/parser.h>
 #include <libxml2/libxml/xpath.h>
-
+#include "smatool.h"
 
 /*
  * u16 represents an unsigned 16-bit number.  Adjust the typedef for

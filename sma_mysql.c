@@ -1,3 +1,4 @@
+#include "sma_mysql.h"
 #include <mysql/mysql.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,16 +11,6 @@ MYSQL *conn;
 MYSQL_RES *res;
 MYSQL_RES *res1;
 MYSQL_RES *res2;
-
-
-void OpenMySqlDatabase(char *, char *, char *, char * );
-void CloseMySqlDatabase();
-int DoQuery(char *);
-int DoQuery1(char *);
-int DoQuery2(char *);
-int install_mysql_tables( ConfType *, FlagType *, char * );
-void update_mysql_tables( ConfType *, FlagType *  );
-int check_schema( ConfType *, FlagType *, char * );
 
 void OpenMySqlDatabase (char *server, char *user, char *password, char *database)
 {
