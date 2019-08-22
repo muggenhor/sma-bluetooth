@@ -1,7 +1,7 @@
 #pragma once
 #include "sma_struct.h"
 
-char* sunrise(ConfType* conf, int debug);
-char* sunset(ConfType* conf, int debug);
-int todays_almanac(ConfType* conf, int debug);
-void update_almanac(ConfType* conf, char* sunrise, char* sunset, int debug);
+extern char* sunrise(const ConfType* conf, int debug);
+extern char* sunset(const ConfType* conf, int debug);
+extern int todays_almanac(const ConfType* conf, int debug);
+extern void update_almanac(const ConfType* conf, const char* sunrise, const char* sunset, int debug);

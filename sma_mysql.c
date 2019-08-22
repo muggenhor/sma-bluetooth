@@ -12,7 +12,7 @@ MYSQL_RES *res;
 MYSQL_RES *res1;
 MYSQL_RES *res2;
 
-void OpenMySqlDatabase (char *server, char *user, char *password, char *database)
+void OpenMySqlDatabase(const char* server, const char* user, const char* password, const char* database)
 {
    
 	
@@ -34,7 +34,8 @@ void CloseMySqlDatabase()
    mysql_close(conn);
 }
 
-int DoQuery (char *query){
+int DoQuery(const char* query)
+{
 	/* execute query */
 	
 	if (mysql_real_query(conn, query, strlen(query))){
@@ -44,7 +45,8 @@ int DoQuery (char *query){
 	return *mysql_error(conn);
 }
 
-int DoQuery1 (char query[1000]){
+int DoQuery1(const char* query)
+{
 	/* execute query */
 	
 	if (mysql_real_query(conn, query, strlen(query))){
@@ -54,7 +56,8 @@ int DoQuery1 (char query[1000]){
 	return *mysql_error(conn);
 }
 
-int DoQuery2 (char query[1000]){
+int DoQuery2(const char* query)
+{
 	/* execute query */
 	
 	if (mysql_real_query(conn, query, strlen(query))){
@@ -64,7 +67,7 @@ int DoQuery2 (char query[1000]){
 	return *mysql_error(conn);
 }
 
-int install_mysql_tables( ConfType * conf, FlagType * flag, char *SCHEMA )
+int install_mysql_tables(const ConfType* conf, const FlagType* flag, const char* SCHEMA)
 /*  Do initial mysql table creationsa */
 {
     int	        found=0;
@@ -158,7 +161,7 @@ int install_mysql_tables( ConfType * conf, FlagType * flag, char *SCHEMA )
     return found;
 }
 
-void update_mysql_tables( ConfType * conf, FlagType * flag )
+void update_mysql_tables(const ConfType* conf, const FlagType* flag)
 /*  Do mysql table schema updates */
 {
     int		schema_value=0;
@@ -231,7 +234,7 @@ void update_mysql_tables( ConfType * conf, FlagType * flag )
     mysql_close(conn);
 }
 
-int check_schema( ConfType * conf, FlagType * flag, char *SCHEMA )
+int check_schema(const ConfType* conf, const FlagType* flag, const char* SCHEMA)
 /*  Check if using the correct database schema */
 {
     int	        found=0;
@@ -258,7 +261,7 @@ int check_schema( ConfType * conf, FlagType * flag, char *SCHEMA )
 }
 
 
-void live_mysql( ConfType conf, FlagType flag, LiveDataType *livedatalist, int livedatalen )
+void live_mysql(const ConfType* conf, const FlagType* flag, const LiveDataType* livedatalist, int livedatalen)
 /* Live inverter values mysql update */
 {
     struct tm 	*loctime;
@@ -269,7 +272,7 @@ void live_mysql( ConfType conf, FlagType flag, LiveDataType *livedatalist, int l
     int		i;
     MYSQL_ROW 	row;
  
-    OpenMySqlDatabase( conf.MySqlHost, conf.MySqlUser, conf.MySqlPwd, conf.MySqlDatabase);
+    OpenMySqlDatabase(conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, conf->MySqlDatabase);
     for( i=0; i<livedatalen; i++ ) {
         loctime = localtime(&(livedatalist+i)->date);
         day = loctime->tm_mday;
@@ -282,7 +285,7 @@ void live_mysql( ConfType conf, FlagType flag, LiveDataType *livedatalist, int l
         live_data=1;
         if( (livedatalist+i)->Persistent == 1 ) {
             sprintf( SQLQUERY, "SELECT IF (Value = \"%s\",NULL,Value) FROM LiveData where Inverter=\"%s\" and Serial=%llu and Description=\"%s\" ORDER BY DateTime DESC LIMIT 1", (livedatalist+i)->Value, (livedatalist+i)->inverter, (livedatalist+i)->serial, (livedatalist+i)->Description );
-            if (flag.debug == 1) printf("%s\n",SQLQUERY);
+            if (flag->debug == 1) printf("%s\n",SQLQUERY);
             if( DoQuery(SQLQUERY) == 0 ) {
                 if ((row = mysql_fetch_row(res)))  //if there is a result, update the row
                 {
@@ -296,7 +299,7 @@ void live_mysql( ConfType conf, FlagType flag, LiveDataType *livedatalist, int l
         if( live_data==1 ) {
             sprintf(datetime, "%d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second );
             sprintf(SQLQUERY,"INSERT INTO LiveData ( DateTime, Inverter, Serial, Description, Value, Units ) VALUES ( \'%s\', \'%s\', %lld, \'%s\', \'%s\', \'%s\'  ) ON DUPLICATE KEY UPDATE DateTime=Datetime, Inverter=VALUES(Inverter), Serial=VALUES(Serial), Description=VALUES(Description), Description=VALUES(Description), Value=VALUES(Value), Units=VALUES(Units)", datetime, (livedatalist+i)->inverter, (livedatalist+i)->serial, (livedatalist+i)->Description, (livedatalist+i)->Value, (livedatalist+i)->Units);
-            if (flag.debug == 1) printf("%s\n",SQLQUERY);
+            if (flag->debug == 1) printf("%s\n",SQLQUERY);
             DoQuery(SQLQUERY);
         }
     }

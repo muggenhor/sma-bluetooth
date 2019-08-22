@@ -195,8 +195,7 @@ add_escapes(unsigned char *cp, int *len)
 /*
  * Recalculate and update length to correct for escapes
  */
-void
-fix_length_send( FlagType * flag, unsigned char *cp, int *len)
+void fix_length_send(const FlagType* flag, unsigned char* cp, int* len)
 {
     if( flag->debug == 1 ) 
        printf( "sum=%x\n", cp[1]+cp[3] );
@@ -248,8 +247,7 @@ fix_length_send( FlagType * flag, unsigned char *cp, int *len)
 /*
  * Recalculate and update length to correct for escapes
  */
-void
-fix_length_received(FlagType * flag, unsigned char *received, int *len)
+static void fix_length_received(const FlagType* flag, unsigned char* received, const int* len)
 {
     if( received[1] != (*len) )
     {
@@ -272,8 +270,7 @@ fix_length_received(FlagType * flag, unsigned char *received, int *len)
 /*
  * How to use the fcs
  */
-void
-tryfcs16(FlagType * flag, unsigned char *cp, int len, unsigned char *fl, int * cc)
+void tryfcs16(const FlagType* flag, const unsigned char* cp, int len, unsigned char* fl, int* cc)
 {
     u16 trialfcs;
     unsigned char stripped[1024] = { 0 };
@@ -343,8 +340,8 @@ unsigned char conv(char *nn)
 		return res;
 }
 
-int
-check_send_error( FlagType * flag, int *s, int *rr, unsigned char *received, int cc, unsigned char *last_sent, int *terminated, int *already_read )
+int check_send_error(const FlagType* flag, const int s, int* rr, unsigned char* received, int cc,
+                     const unsigned char* last_sent, int* terminated, int* already_read)
 {
     int bytes_read,j;
     unsigned char buf[1024]; /*read buffer*/
@@ -357,14 +354,14 @@ check_send_error( FlagType * flag, int *s, int *rr, unsigned char *received, int
     memset(buf,0,1024);
 
     FD_ZERO(&readfds);
-    FD_SET((*s), &readfds);
+    FD_SET(s, &readfds);
 				
-    select((*s)+1, &readfds, NULL, NULL, &tv);
+    select(s+1, &readfds, NULL, NULL, &tv);
 				
     (*terminated) = 0; // Tag to tell if string has 7e termination
     // first read the header to get the record length
-    if (FD_ISSET((*s), &readfds)){	// did we receive anything within 5 seconds
-        bytes_read = recv((*s), header, sizeof(header), 0); //Get length of string
+    if (FD_ISSET(s, &readfds)){	// did we receive anything within 5 seconds
+        bytes_read = recv(s, header, sizeof(header), 0); //Get length of string
 	(*rr) = 0;
         for (size_t i = 0; i < sizeof(header); i++) {
             received[(*rr)] = header[i];
@@ -379,8 +376,8 @@ check_send_error( FlagType * flag, int *s, int *rr, unsigned char *received, int
        memset(received,0,1024);
        return -1;
     }
-    if (FD_ISSET((*s), &readfds)){	// did we receive anything within 5 seconds
-        bytes_read = recv((*s), buf, header[1]-3, 0); //Read the length specified by header
+    if (FD_ISSET(s, &readfds)){	// did we receive anything within 5 seconds
+        bytes_read = recv(s, buf, header[1]-3, 0); //Read the length specified by header
     }
     else
     {
@@ -452,7 +449,7 @@ check_send_error( FlagType * flag, int *s, int *rr, unsigned char *received, int
     return 0;
 }
 
-int empty_read_bluetooth(FlagType* flag, ReadRecordType* readRecord, int* s, int* rr, unsigned char* received,
+int empty_read_bluetooth(const FlagType* flag, ReadRecordType* readRecord, const int s, int* rr, unsigned char* received,
                          int* terminated)
 {
     int bytes_read,j, last_decoded;
@@ -466,17 +463,17 @@ int empty_read_bluetooth(FlagType* flag, ReadRecordType* readRecord, int* s, int
     memset(buf,0,1024);
 
     FD_ZERO(&readfds);
-    FD_SET((*s), &readfds);
+    FD_SET(s, &readfds);
 				
-    if( select((*s)+1, &readfds, NULL, NULL, &tv) <  0) {
+    if( select(s+1, &readfds, NULL, NULL, &tv) <  0) {
         printf( "select error has occurred" ); getchar();
     }
 
 				
     (*terminated) = 0; // Tag to tell if string has 7e termination
     // first read the header to get the record length
-    if (FD_ISSET((*s), &readfds)){	// did we receive anything within 5 seconds
-        bytes_read = recv((*s), header, sizeof(header), 0); //Get length of string
+    if (FD_ISSET(s, &readfds)){	// did we receive anything within 5 seconds
+        bytes_read = recv(s, header, sizeof(header), 0); //Get length of string
 	(*rr) = 0;
         for (size_t i = 0; i < sizeof(header); i++) {
             received[(*rr)] = header[i];
@@ -490,8 +487,8 @@ int empty_read_bluetooth(FlagType* flag, ReadRecordType* readRecord, int* s, int
        (*rr)=0;
        return -1;
     }
-    if (FD_ISSET((*s), &readfds)){	// did we receive anything within 5 seconds
-        bytes_read = recv((*s), buf, header[1]-3, 0); //Read the length specified by header
+    if (FD_ISSET(s, &readfds)){	// did we receive anything within 5 seconds
+        bytes_read = recv(s, buf, header[1]-3, 0); //Read the length specified by header
     }
     else
     {
@@ -626,8 +623,8 @@ int empty_read_bluetooth(FlagType* flag, ReadRecordType* readRecord, int* s, int
     memset(received,0,1024);
     return 0;
 }
-int
-read_bluetooth( ConfType * conf, FlagType * flag, ReadRecordType * readRecord, int *s, int *rr, unsigned char *received, int cc, unsigned char *last_sent, int *terminated )
+int read_bluetooth(const ConfType* conf, const FlagType* flag, ReadRecordType* readRecord, const int s, int* rr,
+                   unsigned char* received, int cc, const unsigned char* last_sent, int* terminated)
 {
     int bytes_read,j, last_decoded;
     unsigned char buf[1024]; /*read buffer*/
@@ -641,18 +638,18 @@ read_bluetooth( ConfType * conf, FlagType * flag, ReadRecordType * readRecord, i
     memset(buf,0,1024);
 
     FD_ZERO(&readfds);
-    FD_SET((*s), &readfds);
+    FD_SET(s, &readfds);
 				
-    if( select((*s)+1, &readfds, NULL, NULL, &tv) <  0) {
+    if( select(s+1, &readfds, NULL, NULL, &tv) <  0) {
         printf( "select error has occurred" ); getchar();
     }
 				
     if( flag->verbose==1) printf("Reading bluetooth packett\n");
-    if( flag->verbose==1) printf("socket=%d\n", (*s));
+    if( flag->verbose==1) printf("socket=%d\n", s);
     (*terminated) = 0; // Tag to tell if string has 7e termination
     // first read the header to get the record length
-    if (FD_ISSET((*s), &readfds)){	// did we receive anything within 5 seconds
-        bytes_read = recv((*s), header, sizeof(header), 0); //Get length of string
+    if (FD_ISSET(s, &readfds)){	// did we receive anything within 5 seconds
+        bytes_read = recv(s, header, sizeof(header), 0); //Get length of string
 	(*rr) = 0;
         for (size_t i = 0; i < sizeof(header); i++) {
             received[(*rr)] = header[i];
@@ -667,8 +664,8 @@ read_bluetooth( ConfType * conf, FlagType * flag, ReadRecordType * readRecord, i
        memset(received,0,1024);
        return -1;
     }
-    if (FD_ISSET((*s), &readfds)){	// did we receive anything within 5 seconds
-        bytes_read = recv((*s), buf, header[1]-3, 0); //Read the length specified by header
+    if (FD_ISSET(s, &readfds)){	// did we receive anything within 5 seconds
+        bytes_read = recv(s, buf, header[1]-3, 0); //Read the length specified by header
     }
     else
     {
@@ -1107,7 +1104,7 @@ InitReturnKeys( ConfType * conf )
 }
 
 //Convert a recieved string to a value
-int ConvertStreamtoInt( unsigned char * stream, int length, int * value )
+int ConvertStreamtoInt(const unsigned char* stream, int length, int* value)
 {
    int	i, nullvalue;
    
@@ -1126,7 +1123,8 @@ int ConvertStreamtoInt( unsigned char * stream, int length, int * value )
 }
 
 //Convert a recieved string to a value
-time_t ConvertStreamtoTime( unsigned char * stream, int length, time_t * value, int *day, int *month, int *year, int *hour, int *minute, int *second )
+time_t ConvertStreamtoTime(const unsigned char* stream, int length, time_t* value, int* day, int* month, int* year,
+                           int* hour, int* minute, int* second)
 {
    int	i, nullvalue;
    struct tm *loctime;
@@ -1157,7 +1155,7 @@ time_t ConvertStreamtoTime( unsigned char * stream, int length, time_t * value, 
 }
 
 // Set switches to save lots of strcmps
-void  SetSwitches( ConfType *conf, FlagType *flag )  
+static void SetSwitches(const ConfType* conf, FlagType* flag)
 {
     //Check if all location variables are set
     if(( conf->latitude_f <= 180 )&&( conf->longitude_f <= 180 ))
@@ -1192,8 +1190,9 @@ void  SetSwitches( ConfType *conf, FlagType *flag )
         flag->daterange=0;
 }
 
-unsigned char *
-ReadStream( ConfType * conf, FlagType * flag, ReadRecordType * readRecord, int * s, unsigned char * stream, int * streamlen, int * datalen, unsigned char * last_sent, int cc, int * terminated, int * togo )
+unsigned char* ReadStream(const ConfType* conf, const FlagType* flag, ReadRecordType* readRecord, const int s,
+                          unsigned char* stream, int* streamlen, int* datalen, const unsigned char* last_sent, int cc,
+                          int* terminated, int* togo)
 {
    int	finished;
    int	finished_record;
@@ -1225,7 +1224,7 @@ ReadStream( ConfType * conf, FlagType * flag, ReadRecordType * readRecord, int *
      finished_record = 0;
      if( (*terminated) == 0 )
      {
-         if( read_bluetooth( conf, flag, readRecord, s, streamlen, stream, cc, last_sent, terminated ) != 0 )
+         if (read_bluetooth(conf, flag, readRecord, s, streamlen, stream, cc, last_sent, terminated) != 0)
          {
              free( datalist );
              datalist = NULL;
@@ -1246,7 +1245,7 @@ ReadStream( ConfType * conf, FlagType * flag, ReadRecordType * readRecord, int *
 }
 
 /* Init Config to default values */
-void InitConfig( ConfType *conf )
+static void InitConfig(ConfType* conf)
 {
     strcpy( conf->Config,"./smatool.conf");
     strcpy( conf->BTAddress, "" );  
@@ -1268,7 +1267,7 @@ void InitConfig( ConfType *conf )
 }
 
 /* Init Flagsg to default values */
-void InitFlag( FlagType *flag )
+static void InitFlag(FlagType* flag)
 {
     flag->debug=0;         /* debug flag */
     flag->verbose=0;       /* verbose flag */
@@ -1282,7 +1281,7 @@ void InitFlag( FlagType *flag )
 }
 
 /* read Config from file */
-int GetConfig( ConfType *conf, FlagType * flag )
+static int GetConfig(ConfType* conf, const FlagType* flag)
 {
     FILE 	*fp;
     char	line[400];
@@ -1351,7 +1350,7 @@ int GetConfig( ConfType *conf, FlagType * flag )
 }
 
 /* read  Inverter Settings from file */
-int GetInverterSetting( ConfType *conf, FlagType * flag )
+int GetInverterSetting(const ConfType* conf, const FlagType* flag)
 {
     FILE 	*fp;
     char	line[400];
@@ -1413,8 +1412,8 @@ int GetInverterSetting( ConfType *conf, FlagType * flag )
     return( 0 );
 }
 
-xmlDocPtr
-getdoc (char *docname) {
+static xmlDocPtr getdoc(const char* docname)
+{
 	xmlDocPtr doc;
 	doc = xmlParseFile(docname);
 	
@@ -1426,9 +1425,8 @@ getdoc (char *docname) {
 	return doc;
 }
 
-xmlXPathObjectPtr
-getnodeset (xmlDocPtr doc, xmlChar *xpath){
-	
+static xmlXPathObjectPtr getnodeset(xmlDocPtr doc, const xmlChar* xpath)
+{
 	xmlXPathContextPtr context;
 	xmlXPathObjectPtr result;
 
@@ -1451,14 +1449,13 @@ getnodeset (xmlDocPtr doc, xmlChar *xpath){
 	return result;
 }
 
-void setup_xml_xpath( ConfType *conf, xmlChar * xpath, char * docname, int index )
+static void setup_xml_xpath(const ConfType* conf, xmlChar* xpath, char* docname, int index)
 {
     sprintf( (char*)xpath, "//Datamap/Map[@index='%d']", index );
     strcpy(docname, conf->Xml);
 }
 
-char *
-return_xml_data( ConfType *conf, int index )
+char* return_xml_data(const ConfType* conf, int index)
 {
     xmlDocPtr doc;
     xmlNodeSetPtr nodeset;
@@ -1671,11 +1668,11 @@ int ReadCommandConfig( ConfType *conf, FlagType *flag, int argc, char **argv, in
     return( 0 );
 }
 
-char * debugdate()
+const char* debugdate()
 {
     time_t curtime;
     struct tm *tm;
-    static char result[20];
+    static _Thread_local char result[20];
 
     curtime = time(NULL);  //get time in seconds since epoch (1/1/1970)	
     tm = localtime(&curtime);
@@ -1696,7 +1693,7 @@ int main(int argc, char **argv)
     FlagType 		flag;
     int 		maximumUnits=1;
     UnitType 		*unit;
-    int			i,s;
+    int			i;
     int 		install=0, update=0, no_dark=0;
     int 		error=0;
     int 		max_output;
@@ -1779,8 +1776,9 @@ int main(int argc, char **argv)
     {
 	if (flag.debug ==1) printf("Address %s\n",conf.BTAddress);
         //Connect to Inverter
-        if ((s = ConnectSocket(&conf)) < 0 )
-           exit( -1 );
+        const int s = ConnectSocket(&conf);
+        if (s == -1)
+           exit(-1);
 
         if (flag.file ==1)
 	  fp=fopen(conf.File,"r");
@@ -1797,23 +1795,25 @@ int main(int argc, char **argv)
    	dest_address[0] = conv(strtok(NULL,":"));
 */
 
-        OpenInverter( &conf, &flag, &unit,  &s, &archdatalist, &archdatalen, &livedatalist, &livedatalen );
-        InverterCommand( "login", &conf, &flag, &unit, &s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen  );
-        InverterCommand( "typelabel", &conf, &flag, &unit, &s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen );
-        InverterCommand( "typelabel", &conf, &flag, &unit, &s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen );
-        InverterCommand( "startuptime", &conf, &flag, &unit, &s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen );
-        InverterCommand( "getacvoltage", &conf, &flag, &unit, &s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen );
-        InverterCommand( "getenergyproduction", &conf, &flag, &unit, &s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen );
-        InverterCommand( "getspotdcpower", &conf, &flag, &unit, &s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen );
-        InverterCommand( "getspotdcvoltage", &conf, &flag, &unit, &s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen );
-        InverterCommand( "getspotacpower", &conf, &flag, &unit, &s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen );
-        InverterCommand( "getgridfreq", &conf, &flag, &unit, &s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen );
-        InverterCommand( "maxACPower", &conf, &flag, &unit, &s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen );
-        InverterCommand( "maxACPowerTotal", &conf, &flag, &unit, &s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen );
-        InverterCommand( "ACPowerTotal", &conf, &flag, &unit, &s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen );
-        InverterCommand( "DeviceStatus", &conf, &flag, &unit, &s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen );
-        InverterCommand( "getrangedata", &conf, &flag, &unit, &s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen );
-        InverterCommand( "logoff", &conf, &flag, &unit, &s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen );
+        OpenInverter(&conf, &flag, &unit, s, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+        InverterCommand("login",               &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+        InverterCommand("typelabel",           &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+        InverterCommand("typelabel",           &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+        InverterCommand("startuptime",         &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+        InverterCommand("getacvoltage",        &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+        InverterCommand("getenergyproduction", &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+        InverterCommand("getspotdcpower",      &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+        InverterCommand("getspotdcvoltage",    &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+        InverterCommand("getspotacpower",      &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+        InverterCommand("getgridfreq",         &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+        InverterCommand("maxACPower",          &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+        InverterCommand("maxACPowerTotal",     &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+        InverterCommand("ACPowerTotal",        &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+        InverterCommand("DeviceStatus",        &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+        InverterCommand("getrangedata",        &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+        InverterCommand("logoff",              &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+
+        close(s);
     }
 
     if ((flag.post ==1)&&(flag.mysql==1)&&(error==0)){
@@ -1833,7 +1833,7 @@ int main(int argc, char **argv)
         unsigned long long 	inverter_serial;
         
         //Update Mysql with live data 
-        live_mysql( conf, flag, livedatalist, livedatalen );
+        live_mysql(&conf, &flag, livedatalist, livedatalen);
         printf( "\nbefore update to PVOutput" ); getchar();
         /* Connect to database */
         OpenMySqlDatabase( conf.MySqlHost, conf.MySqlUser, conf.MySqlPwd, conf.MySqlDatabase );
@@ -1960,10 +1960,9 @@ int main(int argc, char **argv)
     if( livedatalen > 0 )
         free( livedatalist );
     livedatalen=0;
-    close(s);
     if ((flag.repost ==1)&&(error==0)){
         printf( "\nrepost\n" ); //getchar();
-        sma_repost( &conf );
+        sma_repost(&conf, &flag);
 }
 
 return 0;

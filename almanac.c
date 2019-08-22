@@ -14,6 +14,8 @@
 
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. */
+#define _XOPEN_SOURCE 700
+#define _GNU_SOURCE
 #include "almanac.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,14 +24,13 @@
 #include "sma_struct.h"
 #include "sma_mysql.h"
 
-char *  sunrise( ConfType *conf, int debug )
+char* sunrise(const ConfType* conf, int debug)
 {
    //adapted from http://williams.best.vwh.net/sunrise_sunset_algorithm.htm
    time_t curtime;
    struct tm *loctime;
    struct tm *utctime;
    int day,month,year,hour,minute;
-   char *returntime;
    float latitude, longitude;
 
    longitude = conf->longitude_f;
@@ -42,7 +43,6 @@ char *  sunrise( ConfType *conf, int debug )
 
    printf( "latitude=%f longitude=%f debug=%d\n", latitude, longitude, debug );
 
-   returntime = (char *)malloc(6*sizeof(char));
    curtime = time(NULL);  //get time in seconds since epoch (1/1/1970)	
    loctime = localtime(&curtime);
    day = loctime->tm_mday;
@@ -109,12 +109,14 @@ char *  sunrise( ConfType *conf, int debug )
    localT = UT + localOffset;
    if( localT < 0 ) localT=localT+24;
    if( localT > 24 ) localT=localT-24;
-   sprintf( returntime, "%02.0f:%02.0f",floor(localT),floor((localT-floor(localT))*60 )); 
+   char* returntime;
+   if (asprintf(&returntime, "%02.0f:%02.0f", floor(localT), floor((localT - floor(localT)) * 60)) == -1)
+      return NULL;
    if( debug==1 ) printf( "returntime=%s\n", returntime );
    return returntime;
 }
 
-char * sunset( ConfType *conf, int debug )
+char* sunset(const ConfType* conf, int debug)
 {
    (void)debug;
    //adapted from http://williams.best.vwh.net/sunrise_sunset_algorithm.htm
@@ -122,7 +124,6 @@ char * sunset( ConfType *conf, int debug )
    struct tm *loctime;
    struct tm *utctime;
    int day,month,year,hour,minute;
-   char *returntime;
 
    double t,M,L,T,RA,Lquadrant,RAquadrant,sinDec,cosDec;
    double cosH, H, UT, localT,lngHour;
@@ -132,8 +133,6 @@ char * sunset( ConfType *conf, int debug )
 
    longitude = conf->longitude_f;
    latitude = conf->latitude_f;
-
-   returntime = (char *)malloc(6*sizeof(char));
 
    curtime = time(NULL);  //get time in seconds since epoch (1/1/1970)	
    loctime = localtime(&curtime);
@@ -195,11 +194,13 @@ char * sunset( ConfType *conf, int debug )
    localT = UT + localOffset;
    if( localT < 0 ) localT=localT+24;
    if( localT > 24 ) localT=localT-24;
-   sprintf( returntime, "%02.0f:%02.0f",floor(localT),floor((localT-floor(localT))*60) );
+   char* returntime;
+   if (asprintf(&returntime, "%02.0f:%02.0f", floor(localT), floor((localT - floor(localT)) * 60)) == -1)
+       return NULL;
    return returntime;
 }
 
-int todays_almanac( ConfType *conf, int debug )
+int todays_almanac(const ConfType* conf, int debug)
 /*  Check if sunset and sunrise have been set today */
 {
     int	        found=0;
@@ -219,11 +220,11 @@ int todays_almanac( ConfType *conf, int debug )
     return found;
 }
 
-void update_almanac( ConfType *conf, char * sunrise, char * sunset, int debug )
+void update_almanac(const ConfType* conf, const char* sunrise, const char* sunset, int debug)
 {
     char 	SQLQUERY[200];
 
-    OpenMySqlDatabase( conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, conf->MySqlDatabase);
+    OpenMySqlDatabase(conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, conf->MySqlDatabase);
     //Get Start of day value
     sprintf(SQLQUERY,"INSERT INTO Almanac SET sunrise=CONCAT(DATE_FORMAT( NOW(), \"%%Y-%%m-%%d \"),\"%s\"), sunset=CONCAT(DATE_FORMAT( NOW(), \"%%Y-%%m-%%d \"),\"%s\" ), date=NOW() ", sunrise, sunset );
     if (debug == 1) printf("%s\n",SQLQUERY);

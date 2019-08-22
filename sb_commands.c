@@ -16,7 +16,7 @@
 
 static int GetLine(const char* command, FILE* fp);
 
-int ConnectSocket ( ConfType * conf )
+int ConnectSocket(const ConfType* conf)
 {
     struct sockaddr_rc addr = { 0 };
     int i;
@@ -31,12 +31,12 @@ int ConnectSocket ( ConfType * conf )
             // set the connection parameters (who to connect to)
             addr.rc_family = AF_BLUETOOTH;
             addr.rc_channel = (uint8_t) 1;
-            str2ba( conf->BTAddress, &addr.rc_bdaddr );
+            str2ba(conf->BTAddress, &addr.rc_bdaddr);
     
             // connect to server
       	    status = connect((s), (struct sockaddr *)&addr, sizeof(addr));
       	    if (status <0){
-                printf("Error connecting to %s\n",conf->BTAddress);
+                printf("Error connecting to %s\n", conf->BTAddress);
                 close( (s) );
       	    }
             else
@@ -54,7 +54,9 @@ int ConnectSocket ( ConfType * conf )
 /*
  * Update internal running list with live data for later processing
  */
-static int UpdateLiveList(FlagType * flag,  UnitType *unit, char * format, time_t idate,  char * description, float fvalue, int ivalue, char * svalue, char * units, int persistent, int * livedatalen, LiveDataType ** livedatalist)
+static int UpdateLiveList(const FlagType* flag, const UnitType* unit, const char* format, time_t idate,
+                          const char* description, float fvalue, int ivalue, const char* svalue, const char* units,
+                          int persistent, int* livedatalen, LiveDataType** livedatalist)
 {
     unsigned long long 	inverter_serial;
 
@@ -91,8 +93,8 @@ static int UpdateLiveList(FlagType * flag,  UnitType *unit, char * format, time_
     return 0;
 }
 
-
-int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, FILE * fp, int *linenum, ArchDataType **archdatalist, int *archdatalen , LiveDataType **livedatalist, int *livedatalen)
+static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit, const int s, FILE* fp, int* linenum,
+                          ArchDataType** archdatalist, int* archdatalen, LiveDataType** livedatalist, int* livedatalen)
 {
    char  *line;
    size_t len=0;
@@ -211,7 +213,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
 	do {
             if( already_read == 0 )
                 rr=0;
-            if(( already_read == 0 )&&( read_bluetooth( conf, flag, &readRecord, s, &rr, received, cc, last_sent, &terminated ) != 0 ))
+            if(( already_read == 0 )&& read_bluetooth(conf, flag, &readRecord, s, &rr, received, cc, last_sent, &terminated) != 0)
             {
                 already_read=0;
                 found=0;
@@ -248,7 +250,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
     }
     if(!strcmp(lineread,"S")){		//See if line is something we need to send
         //Empty the receive data ready for new command
-        while( ((*linenum)>22)&&( empty_read_bluetooth(flag, &readRecord, s, &rr, received, &terminated ) >= 0 ));
+        while( ((*linenum)>22)&& empty_read_bluetooth(flag, &readRecord, s, &rr, received, &terminated) >= 0);
 	if (flag->debug	== 1) printf("[%d] %s Sending\n", (*linenum),debugdate());
 	cc = 0;
 	do{
@@ -624,7 +626,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
         }
         last_sent = (unsigned  char *)realloc( last_sent, sizeof( unsigned char )*(cc));
         memcpy(last_sent,fl,cc);
-        write((*s),fl,cc);
+        write(s, fl, cc);
         already_read=0;
        //check_send_error( &conf, &s, &rr, received, cc, last_sent, &terminated, &already_read ); 
     }
@@ -634,7 +636,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
         if( readRecord.Status[0]==0xe0 ) {
 	    if (flag->debug	== 1) printf("\nThere is no data currently available %s\n", debugdate());
                 // Read the rest of the records
-                while( read_bluetooth( conf, flag, &readRecord, s, &rr, received, cc, last_sent, &terminated ) == 0 );
+                while( read_bluetooth(conf, flag, &readRecord, s, &rr, received, cc, last_sent, &terminated) == 0 );
 
             }
             else
@@ -653,7 +655,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
 			//printf("Current power = %i Watt\n",currentpower);
 			break;
 		    case 5: // extract current power $POW
-                        if(( data = ReadStream( conf, flag, &readRecord, s, received, &rr, &datalen, last_sent, cc, &terminated, &togo )) != NULL )
+                        if(( data = ReadStream(conf, flag, &readRecord, s, received, &rr, &datalen, last_sent, cc, &terminated, &togo)) != NULL )
                         {
                            //printf( "\ndata=%02x:%02x:%02x:%02x:%02x:%02x\n", data[0], (data+1)[0], (data+2)[0], (data+3)[0], (data+4)[0], (data+5)[0] );
                             int gap;
@@ -755,7 +757,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
 			break;
 
 		    case 17: // Test data
-                        if(( data = ReadStream( conf, flag,  &readRecord, s, received, &rr, &datalen, last_sent, cc, &terminated, &togo )) != NULL )
+                        if(( data = ReadStream(conf, flag,  &readRecord, s, received, &rr, &datalen, last_sent, cc, &terminated, &togo)) != NULL )
                         {
                             printf( "\n" );
                         
@@ -772,7 +774,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
                         idate=0;
                         printf( "\n" );
                         while( finished != 1 ) {
-                            if(( data = ReadStream( conf, flag,  &readRecord, s, received, &rr, &datalen, last_sent, cc, &terminated, &togo )) != NULL )
+                            if(( data = ReadStream(conf, flag,  &readRecord, s, received, &rr, &datalen, last_sent, cc, &terminated, &togo)) != NULL )
                             {
                                 j=0;
                                 for( i=0; i<datalen; i++ )
@@ -812,7 +814,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
                                     if( togo == 0 ) 
                                         finished=1;
                                     else
-                                        if( read_bluetooth( conf, flag, &readRecord, s, &rr, received, cc, last_sent, &terminated ) != 0 )
+                                        if( read_bluetooth(conf, flag, &readRecord, s, &rr, received, cc, last_sent, &terminated) != 0 )
                                         {
                                             found=0;
                                             /*
@@ -856,7 +858,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
                                 
 				break;
 			    case 24: // Inverter data $INVERTERDATA
-                                if(( data = ReadStream( conf, flag,  &readRecord, s, received, &rr, &datalen, last_sent, cc, &terminated, &togo )) != NULL )
+                                if(( data = ReadStream(conf, flag,  &readRecord, s, received, &rr, &datalen, last_sent, cc, &terminated, &togo)) != NULL )
                                 {
                                     if( flag->debug==1 ) printf( "data=%02x\n",(data+3)[0] );
                                     int gap;
@@ -897,7 +899,7 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
                                     //An Error has occurred
                                     break;
 			    case 28: // extract data $DATA
-                                if(( data = ReadStream( conf, flag, &readRecord, s, received, &rr, &datalen, last_sent, cc, &terminated, &togo )) != NULL )
+                                if(( data = ReadStream(conf, flag, &readRecord, s, received, &rr, &datalen, last_sent, cc, &terminated, &togo)) != NULL )
                                 {
                                     int gap = 0;
                                     return_key=-1;
@@ -1050,15 +1052,15 @@ int ProcessCommand( ConfType * conf, FlagType * flag, UnitType **unit, int *s, F
  * Run a command on an inverter
  *
  */
-char * InverterCommand(  const char * command, ConfType * conf, FlagType * flag, UnitType **unit, int *s, FILE * fp, ArchDataType **archdatalist, int *archdatalen , LiveDataType **livedatalist, int *livedatalen)
+void InverterCommand(const char* command, ConfType* conf, const FlagType* flag, UnitType** unit, const int s, FILE* fp,
+                     ArchDataType** archdatalist, int* archdatalen, LiveDataType** livedatalist, int* livedatalen)
 {
     int linenum;
-    char *returnValues=NULL;
 
     if (fseek( fp, 0L, 0 ) < 0 )
         printf( "\nError" );
     if(( linenum = GetLine( command, fp )) > 0 ) {
-        if( ProcessCommand( conf, flag, unit, s, fp, &linenum, archdatalist, archdatalen, livedatalist, livedatalen ) < 0 ) {
+        if (ProcessCommand(conf, flag, unit, s, fp, &linenum, archdatalist, archdatalen, livedatalist, livedatalen) < 0) {
             printf( "\nError need to do something" ); getchar();
         }
     }
@@ -1067,10 +1069,10 @@ char * InverterCommand(  const char * command, ConfType * conf, FlagType * flag,
 	//Command not found in config
 	printf( "\nCommand %s not found", command );
     }    
-    return( returnValues );
 }
 
-int OpenInverter( ConfType * conf, FlagType * flag, UnitType **unit, int * s, ArchDataType **archdatalist, int *archdatalen , LiveDataType **livedatalist, int *livedatalen )
+int OpenInverter(ConfType* conf, const FlagType* flag, UnitType** unit, const int s, ArchDataType** archdatalist,
+                 int* archdatalen, LiveDataType** livedatalist, int* livedatalen)
 {
     FILE * fp;
 
@@ -1083,10 +1085,10 @@ int OpenInverter( ConfType * conf, FlagType * flag, UnitType **unit, int * s, Ar
         perror( "Can't open conf file" );
         return -1;
     }
-    if( InverterCommand( "init", conf, flag, unit, s, fp, archdatalist, archdatalen, livedatalist, livedatalen ) == (char *)NULL )
+    InverterCommand("init", conf, flag, unit, s, fp, archdatalist, archdatalen, livedatalist, livedatalen);
 
     fclose(fp);
-    return( 0 );
+    return 0;
 }
 
 

@@ -19,4 +19,4 @@
     #include "sma_struct.h"
 #endif
 
-extern void sma_repost( ConfType * );
+extern void sma_repost(const ConfType* conf, const FlagType* flag);

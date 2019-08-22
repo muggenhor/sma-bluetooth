@@ -28,6 +28,7 @@
 #include <assert.h>
 #include <sys/types.h>
 #include <curl/curl.h>
+#include "repost.h"
 #include "sma_struct.h"
 #include "sma_mysql.h"
 
@@ -36,7 +37,7 @@ size_t write_data(char* ptr, size_t size, size_t nmemb, void* stream)
     return fwrite(ptr, size, nmemb, (FILE*)stream);
 }
 
-void sma_repost( ConfType * conf, FlagType * flag )
+void sma_repost(const ConfType* conf, const FlagType* flag)
 {
     FILE* fp;
     CURL *curl;
