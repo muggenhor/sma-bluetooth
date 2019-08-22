@@ -15,8 +15,7 @@
 
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. */
-#ifndef H_SMASTRUCT
-   #define H_SMASTRUCT
+#pragma once
 
 #include <time.h>
 
@@ -113,5 +112,3 @@ typedef struct{
     unsigned int  Status[2];		/*Return Status		*/
     unsigned char data[255];		/*Data to be analysed	*/
 } ReadRecordType;
-
-#endif

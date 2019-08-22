@@ -1,9 +1,9 @@
-#include "sma_mysql.h"
+#include "sma_mysql.hpp"
 #include <mysql/mysql.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "sma_struct.h"
+#include "sma_struct.hpp"
 #include <time.h>
 
 

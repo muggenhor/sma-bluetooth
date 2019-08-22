@@ -15,14 +15,13 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #define _XOPEN_SOURCE 700
-#define _GNU_SOURCE
-#include "almanac.h"
+#include "almanac.hpp"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
-#include "sma_struct.h"
-#include "sma_mysql.h"
+#include "sma_struct.hpp"
+#include "sma_mysql.hpp"
 
 char* sunrise(const ConfType* conf, int debug)
 {

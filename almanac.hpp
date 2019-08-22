@@ -1,5 +1,5 @@
 #pragma once
-#include "sma_struct.h"
+#include "sma_struct.hpp"
 
 extern char* sunrise(const ConfType* conf, int debug);
 extern char* sunset(const ConfType* conf, int debug);

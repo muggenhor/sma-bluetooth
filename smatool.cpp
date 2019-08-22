@@ -31,13 +31,13 @@
 #include <assert.h>
 #include <sys/types.h>
 #include <curl/curl.h>
-#include "repost.h"
-#include "sma_mysql.h"
+#include "repost.hpp"
+#include "sma_mysql.hpp"
 #include <libxml2/libxml/parser.h>
 #include <libxml2/libxml/xpath.h>
-#include "smatool.h"
-#include "almanac.h"
-#include "sb_commands.h"
+#include "smatool.hpp"
+#include "almanac.hpp"
+#include "sb_commands.hpp"
 
 /*
  * u16 represents an unsigned 16-bit number.  Adjust the typedef for
@@ -84,10 +84,6 @@ static const char* const accepted_strings[] = {
 "$MYSERIAL",
 "$LOGIN"
 };
-
-int cc;
-unsigned char fl[1024] = { 0 };
-
 
 static const u16 fcstab[256] = {
    0x0000, 0x1189, 0x2312, 0x329b, 0x4624, 0x57ad, 0x6536, 0x74bf,
@@ -1012,12 +1008,12 @@ char * ConvertStreamtoString( unsigned char * stream, int length )
    
    nullvalue = 1;
 
-   value = malloc( sizeof(char)*10+1 );
+   value = (char*)malloc( sizeof(char)*10+1 );
    for( i=0; i < length; i++ ) 
    {
       if( i%10 > j ) {
             j++;
-	    value = realloc( value, sizeof(char)*10*j+1 );
+	    value = (char*)realloc( value, sizeof(char)*10*j+1 );
       }
       if( stream[i] != 0xff ) //check if all ffs which is a null value 
         nullvalue = 0;
@@ -1674,7 +1670,7 @@ const char* debugdate()
 {
     time_t curtime;
     struct tm *tm;
-    static _Thread_local char result[20];
+    static thread_local char result[20];
 
     curtime = time(NULL);  //get time in seconds since epoch (1/1/1970)	
     tm = localtime(&curtime);

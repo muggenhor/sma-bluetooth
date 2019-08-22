@@ -1,5 +1,5 @@
 #pragma once
-#include "sma_struct.h"
+#include "sma_struct.hpp"
 
 extern unsigned char* ReadStream(const ConfType* conf, const FlagType* flag, ReadRecordType* readRecord, int s,
                                  unsigned char* stream, int* streamlen, int* datalen, const unsigned char* last_sent,

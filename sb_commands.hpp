@@ -1,5 +1,5 @@
 #pragma once
-#include "sma_struct.h"
+#include "sma_struct.hpp"
 #include <stdio.h>
 
 extern int ConnectSocket(const ConfType* conf);

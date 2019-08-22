@@ -1,21 +1,21 @@
 ARCH := $(shell getconf LONG_BIT)
 CPPFLAGS := -I/usr/include/libxml2
-CFLAGS := -std=c11 -fstack-protector-all -g3 -O3 -Wall -Wextra -Werror -Wno-unused-result
+CXXFLAGS := -std=c++11 -fstack-protector-all -g3 -O3 -Wall -Wextra -Werror -Wno-unused-result
 
 all: smatool
 
 smatool: smatool.o repost.o sma_mysql.o almanac.o sb_commands.o
-	$(CC) $^ -lxml2 -lmysqlclient -lbluetooth -lcurl -lm -o $@ 
+	$(CXX) $^ -lxml2 -lmysqlclient -lbluetooth -lcurl -lm -o $@
 
-%.o: %.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+%.o: %.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
-smatool.o: smatool.c sma_mysql.h
-repost.o: repost.c sma_mysql.h
-sma_mysql.o: sma_mysql.c
-almanac.o: almanac.c
-sma_pvoutput.o: sma_pvoutput.c
-sb_commands.o: sb_commands.c
+smatool.o: smatool.cpp sma_mysql.hpp
+repost.o: repost.cpp sma_mysql.hpp
+sma_mysql.o: sma_mysql.cpp
+almanac.o: almanac.cpp
+sma_pvoutput.o: sma_pvoutput.cpp
+sb_commands.o: sb_commands.cpp
 
 clean:
 	rm -f *.o

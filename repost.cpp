@@ -28,9 +28,9 @@
 #include <assert.h>
 #include <sys/types.h>
 #include <curl/curl.h>
-#include "repost.h"
-#include "sma_struct.h"
-#include "sma_mysql.h"
+#include "repost.hpp"
+#include "sma_struct.hpp"
+#include "sma_mysql.hpp"
 
 size_t write_data(char* ptr, size_t size, size_t nmemb, void* stream)
 {
@@ -41,7 +41,7 @@ void sma_repost(const ConfType* conf, const FlagType* flag)
 {
     FILE* fp;
     CURL *curl;
-    CURLcode result;
+    int result;
     char buf[1024], buf1[400];
     char 	SQLQUERY[1000];
     char compurl[400];
@@ -69,8 +69,8 @@ void sma_repost(const ConfType* conf, const FlagType* flag)
 	     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
 	     curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
 	     //curl_easy_setopt(curl, CURLOPT_FAILONERROR, compurl);
-	     result = curl_easy_perform(curl);
-             if (flag->debug == 1) printf("result = %d\n",result);
+	     auto cresult = curl_easy_perform(curl);
+             if (flag->debug == 1) printf("result = %d\n",cresult);
              rewind( fp );
              fgets( buf, sizeof( buf ), fp );
              result = sscanf( buf, "Bad request %s has no outputs between the requested period", buf1 );
@@ -110,11 +110,11 @@ void sma_repost(const ConfType* conf, const FlagType* flag)
                     if (flag->debug == 1) printf("url = %s\n",compurl);
 		    curl_easy_setopt(curl, CURLOPT_URL, compurl);
 		    curl_easy_setopt(curl, CURLOPT_FAILONERROR, compurl);
-		    result = curl_easy_perform(curl);
+		    auto cresult = curl_easy_perform(curl);
                     sleep(1);
-	            if (flag->debug == 1) printf("result = %d\n",result);
+	            if (flag->debug == 1) printf("result = %d\n",cresult);
 		    curl_easy_cleanup(curl);
-                    if( result==0 ) 
+                    if( cresult==0 ) 
                     {
                         sprintf(SQLQUERY,"UPDATE DayData set PVOutput=NOW() WHERE DateTime=\"%s235500\"  ", row[0] );
                         if (flag->debug == 1) printf("%s\n",SQLQUERY);

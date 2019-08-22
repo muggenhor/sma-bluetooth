@@ -1,7 +1,7 @@
 #pragma once
 
 #include <mysql/mysql.h>
-#include "sma_struct.h"
+#include "sma_struct.hpp"
 
 extern MYSQL* OpenMySqlDatabase(const char* server, const char* user, const char* password, const char* database);
 extern MYSQL_RES* DoQuery(MYSQL* conn, const char* query);

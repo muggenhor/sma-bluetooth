@@ -15,8 +15,6 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-#ifndef H_SMASTRUCT
-    #include "sma_struct.h"
-#endif
+#include "sma_struct.hpp"
 
 extern void sma_repost(const ConfType* conf, const FlagType* flag);
