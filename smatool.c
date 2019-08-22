@@ -961,7 +961,7 @@ int is_light( ConfType * conf, FlagType * flag )
           if( atoi( (char *)row[0] ) == 1 ) light=0;
        }
     }
-    if (flag->debug == 1) printf("Before close\n",SQLQUERY);
+    if (flag->debug == 1) printf("Before close: %s\n",SQLQUERY);
     
     mysql_close(conn);
     return light;
@@ -1847,7 +1847,7 @@ int main(int argc, char **argv)
         OpenMySqlDatabase( conf.MySqlHost, conf.MySqlUser, conf.MySqlPwd, conf.MySqlDatabase );
         for( i=1; i<archdatalen; i++ ) //Start at 1 as the first record is a dummy
         {
-	    sprintf(SQLQUERY,"INSERT INTO DayData ( DateTime, Inverter, Serial, CurrentPower, EtotalToday ) VALUES ( FROM_UNIXTIME(%ld),\'%s\',%ld,%0.f, %.3f ) ON DUPLICATE KEY UPDATE DateTime=Datetime, Inverter=VALUES(Inverter), Serial=VALUES(Serial), CurrentPower=VALUES(CurrentPower), EtotalToday=VALUES(EtotalToday)",(archdatalist+i)->date, (archdatalist+i)->inverter, (archdatalist+i)->serial, (archdatalist+i)->current_value, (archdatalist+i)->accum_value );
+	    sprintf(SQLQUERY,"INSERT INTO DayData ( DateTime, Inverter, Serial, CurrentPower, EtotalToday ) VALUES ( FROM_UNIXTIME(%ld),\'%s\',%llu,%0.f, %.3f ) ON DUPLICATE KEY UPDATE DateTime=Datetime, Inverter=VALUES(Inverter), Serial=VALUES(Serial), CurrentPower=VALUES(CurrentPower), EtotalToday=VALUES(EtotalToday)",(archdatalist+i)->date, (archdatalist+i)->inverter, (archdatalist+i)->serial, (archdatalist+i)->current_value, (archdatalist+i)->accum_value );
 	    if (flag.debug == 1) printf("%s\n",SQLQUERY);
 	    DoQuery(SQLQUERY);
             //getchar();
