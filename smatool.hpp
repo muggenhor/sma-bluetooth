@@ -8,7 +8,7 @@ extern char* return_xml_data(const ConfType* conf, int index);
 extern long ConvertStreamtoLong( unsigned char * stream, int length, unsigned long long * value );
 extern float ConvertStreamtoFloat( unsigned char *, int, float * );
 extern char * ConvertStreamtoString( unsigned char *, int );
-extern unsigned char conv( char * );
+extern unsigned char conv(const char* nn);
 extern int empty_read_bluetooth(const FlagType* flag, ReadRecordType* readRecord, int s, int* rr,
                                 unsigned char* received, int* terminated);
 extern int read_bluetooth(const ConfType* conf, const FlagType* flag, ReadRecordType* readRecord, int s, int* rr,

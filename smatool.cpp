@@ -288,52 +288,51 @@ void tryfcs16(const FlagType* flag, const unsigned char* cp, int len, unsigned c
     }
 }
 
-
-unsigned char conv(char *nn)
+unsigned char conv(const char* nn)
 {
-	unsigned char tt=0,res=0;
-	int i;   
-	
-	for(i=0;i<2;i++){
-		switch(nn[i]){
+    unsigned char tt=0,res=0;
+    int i;   
 
-		case 65: /*A*/
-		case 97: /*a*/
-		tt = 10;
-		break;
+    for(i=0;i<2;i++){
+        switch(nn[i]){
 
-		case 66: /*B*/
-		case 98: /*b*/
-		tt = 11;
-		break;
+            case 'A':
+            case 'a':
+                tt = 10;
+                break;
 
-		case 67: /*C*/
-		case 99: /*c*/
-		tt = 12;
-		break;
+            case 'B':
+            case 'b':
+                tt = 11;
+                break;
 
-		case 68: /*D*/
-		case 100: /*d*/
-		tt = 13;
-		break;
+            case 'C':
+            case 'c':
+                tt = 12;
+                break;
 
-		case 69: /*E*/
-		case 101: /*e*/
-		tt = 14;
-		break;
+            case 'D':
+            case 'd':
+                tt = 13;
+                break;
 
-		case 70: /*F*/
-		case 102: /*f*/
-		tt = 15;
-		break;
+            case 'E':
+            case 'e':
+                tt = 14;
+                break;
+
+            case 'F':
+            case 'f':
+                tt = 15;
+                break;
 
 
-		default:
-		tt = nn[i] - 48;
-		}
-		res = res + (tt * pow(16,1-i));
-		}
-		return res;
+            default:
+                tt = nn[i] - 48;
+        }
+        res = res + (tt * pow(16,1-i));
+    }
+    return res;
 }
 
 int check_send_error(const FlagType* flag, const int s, int* rr, unsigned char* received, int cc,
