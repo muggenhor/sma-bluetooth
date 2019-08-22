@@ -5,10 +5,10 @@ CFLAGS := -fstack-protector-all -g3 -O3 -Wall -Wextra -Werror -Wno-unused-result
 all: smatool
 
 smatool: smatool.o repost.o sma_mysql.o almanac.o sb_commands.o
-	gcc $^ -lxml2 -lmysqlclient -lbluetooth -lcurl -lm -o $@ 
+	$(CC) $^ -lxml2 -lmysqlclient -lbluetooth -lcurl -lm -o $@ 
 
 %.o: %.c
-	gcc $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 smatool.o: smatool.c sma_mysql.h
 repost.o: repost.c sma_mysql.h
