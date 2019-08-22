@@ -1454,7 +1454,7 @@ getnodeset (xmlDocPtr doc, xmlChar *xpath){
 
 void setup_xml_xpath( ConfType *conf, xmlChar * xpath, char * docname, int index )
 {
-    sprintf( xpath, "//Datamap/Map[@index='%d']", index );
+    sprintf( (char*)xpath, "//Datamap/Map[@index='%d']", index );
     sprintf( docname, "%s", "/usr/local/bin/smatool.xml" );
 }
 
@@ -1467,7 +1467,7 @@ return_xml_data( ConfType *conf, int index )
     xmlXPathObjectPtr result;
     xmlChar xpath[30];
     char docname[60];
-    char *return_string = (char *)NULL;
+    char* return_string = NULL;
     int i;
     xmlChar *keyword;
 		
@@ -1481,8 +1481,7 @@ return_xml_data( ConfType *conf, int index )
             while (cur != NULL ) {
 		if( xmlStrEqual(cur->name, (const xmlChar *)"Value")) {
       		    keyword = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-                    return_string=malloc(sizeof(char)*strlen(keyword)+1);
-                    strcpy( return_string, keyword );
+                    return_string = strdup((const char*)keyword);
                     xmlFree(keyword);
 		}
 	    	cur = cur->next;
@@ -1495,7 +1494,7 @@ return_xml_data( ConfType *conf, int index )
     xmlFreeDoc(doc);
     xmlCleanupParser();
 
-    return (char *)return_string ;
+    return return_string ;
 }
 
 /* Print a help message */
