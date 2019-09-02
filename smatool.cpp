@@ -15,7 +15,7 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-/* compile gcc -lbluetooth -lmysqlclient -g -o smatool smatool.c */
+/* compile gcc -lbluetooth -g -o smatool smatool.c */
 
 #define _XOPEN_SOURCE 700 /* glibc needs this */
 #include <algorithm>
@@ -32,7 +32,6 @@
 #include <time.h>
 #include <assert.h>
 #include <sys/types.h>
-#include "sma_mysql.hpp"
 #include "smatool.hpp"
 #include "sb_commands.hpp"
 #include <fmt/chrono.h>
@@ -50,7 +49,6 @@ typedef u_int16_t u16;
 #define PPPINITFCS16 0xffff /* Initial FCS value    */
 #define PPPGOODFCS16 0xf0b8 /* Good final FCS value */
 #define ASSERT(x) assert(x)
-#define SCHEMA "4"  /* Current database schema */
 
 static const char* const accepted_strings[] = {
 "$END",
@@ -877,41 +875,6 @@ unsigned char *  get_timezone_in_seconds( FlagType * flag, unsigned char *tzhex 
    return tzhex;
 }
 
-int auto_set_dates( ConfType * conf, FlagType * flag )
-/*  If there are no dates set - get last updated date and go from there to NOW */
-{
-    time_t  	curtime;
-    struct tm 	*loctime;
-
-    if( flag->mysql == 1 )
-    {
-        MySQL conn(conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, conf->MySqlDatabase);
-        //Get last updated value
-        static const char SQLQUERY[] = "SELECT DATE_FORMAT( DateTime, \"%Y-%m-%d %H:%i:%S\" ) FROM DayData WHERE 1 ORDER BY DateTime DESC LIMIT 1";
-        if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
-        auto res = conn.fetch_query(SQLQUERY);
-        if (auto row = res.fetch_row())  //if there is a result, update the row
-        {
-           strcpy( conf->datefrom, row[0] );
-        }
-    }
-    if( strlen( conf->datefrom ) == 0 )
-        strcpy( conf->datefrom, "2000-01-01 00:00:00" );
-    
-    curtime = time(NULL);  //get time in seconds since epoch (1/1/1970)	
-    loctime = localtime(&curtime);
-    const int day = loctime->tm_mday;
-    const int month = loctime->tm_mon +1;
-    const int year = loctime->tm_year + 1900;
-    const int hour = loctime->tm_hour;
-    const int minute = loctime->tm_min; 
-    const int second = loctime->tm_sec; 
-    sprintf( conf->dateto, "%04d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second );
-    flag->daterange=1;
-    if( flag->verbose == 1 ) fmt::printf( "Auto set dates from %s to %s\n", conf->datefrom, conf->dateto );
-    return 1;
-}
-
 //Set a value depending on inverter
 void  SetInverterType( ConfType * conf, UnitType ** unit )  
 {
@@ -1116,15 +1079,6 @@ time_t ConvertStreamtoTime(const unsigned char* stream, int length, time_t* valu
 // Set switches to save lots of strcmps
 static void SetSwitches(const ConfType* conf, FlagType* flag)
 {
-    //Check if all Mysql variables are set
-    if(( strlen(conf->MySqlUser) > 0 )
-	 &&( strlen(conf->MySqlPwd) > 0 )
-	 &&( strlen(conf->MySqlHost) > 0 )
-	 &&( strlen(conf->MySqlDatabase) > 0 )
-	 &&( flag->test==0 ))
-        flag->mysql=1;
-    else
-        flag->mysql=0;
     //Check if all File variables are set
     if( strlen(conf->File) > 0 )
         flag->file=1;
@@ -1199,10 +1153,6 @@ static void InitConfig(ConfType* conf)
     conf->bt_timeout = 30;  
     strcpy( conf->Password, "0000" );  
     strcpy( conf->File, "sma.in" );  
-    strcpy( conf->MySqlHost, "localhost" );  
-    strcpy( conf->MySqlDatabase, "smatool" );  
-    strcpy( conf->MySqlUser, "" );  
-    strcpy( conf->MySqlPwd, "" );  
     strcpy( conf->datefrom, "" );  
     strcpy( conf->dateto, "" );  
 }
@@ -1214,7 +1164,6 @@ static void InitFlag(FlagType* flag)
     flag->verbose=0;       /* verbose flag */
     flag->daterange=0;     /* is system using a daterange */
     flag->test=0;     /* is system using a daterange */
-    flag->mysql=0;     /* is system using a daterange */
     flag->file=0;     /* is system using a daterange */
 }
 
@@ -1259,14 +1208,6 @@ static int GetConfig(ConfType* conf, const FlagType* flag)
                        strcpy( conf->Password, value );  
                     if( strcmp( variable, "File" ) == 0 )
                        strcpy( conf->File, value );  
-                    if( strcmp( variable, "MySqlHost" ) == 0 )
-                       strcpy( conf->MySqlHost, value );  
-                    if( strcmp( variable, "MySqlDatabase" ) == 0 )
-                       strcpy( conf->MySqlDatabase, value );  
-                    if( strcmp( variable, "MySqlUser" ) == 0 )
-                       strcpy( conf->MySqlUser, value );  
-                    if( strcmp( variable, "MySqlPwd" ) == 0 )
-                       strcpy( conf->MySqlPwd, value );  
                 }
             }
         }
@@ -1365,8 +1306,6 @@ void PrintHelp()
     fmt::printf( "  -c,  --config CONFIGFILE                 Set config file default smatool.conf\n" );
     fmt::printf( "       --test                              Run in test mode - don't update data\n" );
     fmt::printf( "\n" );
-    fmt::printf( "Dates are no longer required - defaults to last update if using mysql\n" );
-    fmt::printf( "or 2000 to now if not using mysql\n" );
     fmt::printf( "  -from  --datefrom YYYY-MM-DD HH:MM:00    Date range from date\n" );
     fmt::printf( "  -to  --dateto YYYY-MM-DD HH:MM:00        Date range to date\n" );
     fmt::printf( "\n" );
@@ -1376,20 +1315,11 @@ void PrintHelp()
     fmt::printf( "  -t,  --timeout TIMEOUT                   bluetooth timeout (secs) default 5\n" );
     fmt::printf( "  -p,  --password PASSWORD                 inverter user password default 0000\n" );
     fmt::printf( "  -f,  --file FILENAME                     command file default sma.in.new\n" );
-    fmt::printf( "Mysql database information\n" );
-    fmt::printf( "  -H,  --mysqlhost MYSQLHOST               mysql host default localhost\n");
-    fmt::printf( "  -D,  --mysqldb MYSQLDATBASE              mysql database default smatool\n");
-    fmt::printf( "  -U,  --mysqluser MYSQLUSER               mysql user\n");
-    fmt::printf( "  -P,  --mysqlpwd MYSQLPASSWORD            mysql password\n");
-    fmt::printf( "Mysql tables can be installed using INSTALL you may have to use a higher \n" );
-    fmt::printf( "privelege user to allow the creation of databases and tables, use command line \n" );
-    fmt::printf( "       --INSTALL                           install mysql data tables\n");
-    fmt::printf( "       --UPDATE                            update mysql data tables\n");
     fmt::printf( "\n\n" );
 }
 
 /* Init Config to default values */
-int ReadCommandConfig( ConfType *conf, FlagType *flag, int argc, char **argv, int * install, int * update )
+int ReadCommandConfig( ConfType *conf, FlagType *flag, int argc, char **argv)
 {
     int	i;
 
@@ -1441,37 +1371,11 @@ int ReadCommandConfig( ConfType *conf, FlagType *flag, int argc, char **argv, in
 	        strcpy(conf->File,argv[i]);
             }
 	}
-	else if ((strcmp(argv[i],"-H")==0)||(strcmp(argv[i],"--mysqlhost")==0)){
-            i++;
-            if (i<argc){
-		strcpy(conf->MySqlHost,argv[i]);
-            }
-        }
-	else if ((strcmp(argv[i],"-D")==0)||(strcmp(argv[i],"--mysqlcwdb")==0)){
-            i++;
-            if (i<argc){
-		strcpy(conf->MySqlDatabase,argv[i]);
-            }
-        }
-	else if ((strcmp(argv[i],"-U")==0)||(strcmp(argv[i],"--mysqluser")==0)){
-            i++;
-            if (i<argc){
-		strcpy(conf->MySqlUser,argv[i]);
-            }
-        }
-	else if ((strcmp(argv[i],"-P")==0)||(strcmp(argv[i],"--mysqlpwd")==0)){
-            i++;
-            if (i<argc){
-		strcpy(conf->MySqlPwd,argv[i]);
-            }
-	}				
 	else if ((strcmp(argv[i],"-h")==0) || (strcmp(argv[i],"--help") == 0 ))
         {
            PrintHelp();
            return( -1 );
         }
-	else if (strcmp(argv[i],"--INSTALL")==0) (*install)=1;
-	else if (strcmp(argv[i],"--UPDATE")==0) (*update)=1;
         else
         {
            fmt::printf("Bad Syntax\n\n" );
@@ -1498,7 +1402,6 @@ int main(int argc, char **argv)
     FlagType 		flag;
     int 		maximumUnits=1;
     UnitType 		*unit;
-    int 		install=0, update=0;
     unsigned char 	tzhex[2] = { 0 };
     int			archdatalen=0, livedatalen=0;
     ArchDataType 	*archdatalist=NULL;
@@ -1515,29 +1418,19 @@ int main(int argc, char **argv)
     InitConfig( &conf );
     InitFlag( &flag );
     // read command arguments needed so can get config
-    if( ReadCommandConfig( &conf, &flag, argc, argv, &install, &update ) < 0 )
+    if( ReadCommandConfig( &conf, &flag, argc, argv) < 0 )
         exit(0);
     // read Config file
     if( GetConfig( &conf, &flag ) < 0 )
         exit(-1);
     // read command arguments  again - they overide config
-    if( ReadCommandConfig( &conf, &flag, argc, argv, &install, &update ) < 0 )
+    if( ReadCommandConfig( &conf, &flag, argc, argv) < 0 )
         exit(0);
     // read Inverter Setting file
     //if( GetInverterSetting( &conf ) < 0 )
       //  exit(-1);
     // set switches used through the program
     SetSwitches( &conf, &flag );  
-    if(( install==1 )&&( flag.mysql==1 ))
-    {
-        install_mysql_tables( &conf, &flag, SCHEMA );
-        exit(0);
-    }
-    if(( update==1 )&&( flag.mysql==1 ))
-    {
-        update_mysql_tables( &conf, &flag );
-        exit(0);
-    }
     // Get Return Value lookup from file
     InitReturnKeys( &conf );
     // Set value for inverter type
@@ -1545,17 +1438,7 @@ int main(int argc, char **argv)
     SetInverterType( &conf, &unit );
     // Get Local Timezone offset in seconds
     get_timezone_in_seconds( &flag, tzhex );
-    if( flag.mysql==1 ) { 
-        if( flag.debug == 1 ) fmt::printf( "Before Check Schema\n" ); 
-       	if( check_schema( &conf, &flag,  SCHEMA ) != 1 )
-            exit(-1);
-        if(flag.daterange==0 ) { //auto set the dates
-            if( flag.debug == 1 ) fmt::printf( "auto_set_dates\n" ); 
-            auto_set_dates( &conf, &flag);
-        }
-    }
-    else
-        if( flag.verbose == 1 ) fmt::printf( "QUERY RANGE    from %s to %s\n", conf.datefrom, conf.dateto ); 
+    if( flag.verbose == 1 ) fmt::printf( "QUERY RANGE    from %s to %s\n", conf.datefrom, conf.dateto ); 
     if (flag.debug ==1) fmt::printf("Address %s\n",conf.BTAddress);
     //Connect to Inverter
     const int s = ConnectSocket(&conf);
@@ -1598,19 +1481,15 @@ int main(int argc, char **argv)
 
     close(s);
 
-    if (flag.mysql==1)
+#if 0
+    if (flag.debug == 1)
     {
-	/* Connect to database */
-        MySQL conn(conf.MySqlHost, conf.MySqlUser, conf.MySqlPwd, conf.MySqlDatabase );
-        std::string SQLQUERY;
-        for (int i = 1; i < archdatalen; ++i) // Start at 1 as the first record is a dummy
-        {
-	    SQLQUERY = fmt::sprintf("INSERT INTO DayData ( DateTime, Inverter, Serial, CurrentPower, EtotalToday ) VALUES ( FROM_UNIXTIME(%ld),\'%s\',%llu,%0.f, %.3f ) ON DUPLICATE KEY UPDATE DateTime=Datetime, Inverter=VALUES(Inverter), Serial=VALUES(Serial), CurrentPower=VALUES(CurrentPower), EtotalToday=VALUES(EtotalToday)",(archdatalist+i)->date, (archdatalist+i)->inverter, (archdatalist+i)->serial, (archdatalist+i)->current_value, (archdatalist+i)->accum_value);
-	    if (flag.debug == 1) fmt::printf("%s\n",SQLQUERY);
-            conn.query(SQLQUERY.c_str());
-            //getchar();
-        }
+      for (int i = 1; i < archdatalen; ++i) // Start at 1 as the first record is a dummy
+      {
+        fmt::printf("INSERT INTO DayData ( DateTime, Inverter, Serial, CurrentPower, EtotalToday ) VALUES ( FROM_UNIXTIME(%ld),\'%s\',%llu,%0.f, %.3f ) ON DUPLICATE KEY UPDATE DateTime=Datetime, Inverter=VALUES(Inverter), Serial=VALUES(Serial), CurrentPower=VALUES(CurrentPower), EtotalToday=VALUES(EtotalToday)\n",(archdatalist+i)->date, (archdatalist+i)->inverter, (archdatalist+i)->serial, (archdatalist+i)->current_value, (archdatalist+i)->accum_value);
+      }
     }
+#endif
 
     if( archdatalen > 0 )
         free( archdatalist );

@@ -15,16 +15,3 @@ Password
 Config
 # String file (compulsory) data strings to drive the system
 File		./sma.in.new
-# Location (optional) required to avoid waking up system in the dark. 
-# Requires  mysql below.
-Latitude
-Longitude
-# Mysql (optional) required for storing data
-MySqlHost	localhost
-MySqlDatabase	smatool
-MySqlUser
-MySqlPwd
-# PVOutput.org specific data if you are outputting to PVOutput.org.
-PVOutputURL	http://pvoutput.org/service/r2/addstatus.jsp
-PVOutputKey
-PVOutputSid

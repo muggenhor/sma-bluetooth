@@ -10,7 +10,6 @@
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/rfcomm.h>
 #include <errno.h>
-#include "sma_mysql.hpp"
 #include "smatool.hpp"
 #include <unistd.h>
 #include <fmt/printf.h>
@@ -1005,7 +1004,15 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
 					       break;
                                            }
       				           }
-				    //       live_mysql( &conf, year, month, day, hour, minute, second, conf.Inverter, inverter_serial, returnkeylist[return_key].description, currentpower_total/returnkeylist[return_key].divisor, returnkeylist[return_key].units, debug );
+#if 0
+                                           if (flag->debug)
+                                           {
+                                             for (int i = 0; i < *livedatalen; ++i)
+                                             {
+                                               fmt::printf("INSERT INTO LiveData ( DateTime, Inverter, Serial, Description, Value, Units ) VALUES ( \'%s\', \'%s\', %lld, \'%s\', \'%s\', \'%s\'  ) ON DUPLICATE KEY UPDATE DateTime=Datetime, Inverter=VALUES(Inverter), Serial=VALUES(Serial), Description=VALUES(Description), Description=VALUES(Description), Value=VALUES(Value), Units=VALUES(Units)\n", debugdate(), (*livedatalist+i)->inverter, (*livedatalist+i)->serial, (*livedatalist+i)->Description, (*livedatalist+i)->Value, (*livedatalist+i)->Units);
+                                             }
+                                           }
+#endif
                                        }
                                        else
                                        {
