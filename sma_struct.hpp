@@ -57,7 +57,6 @@ typedef struct{
     char Password[20];          /*--password 	-p 	*/
     char Config[80];            /*--config   	-c 	*/
     char File[80];              /*--file     	-f 	*/
-    char Xml[80];               /*--xml     	-x 	*/
     char MySqlHost[40];         /*--mysqlhost   -h 	*/
     char MySqlDatabase[20];     /*--mysqldb     -d 	*/
     char MySqlUser[80];         /*--mysqluser   -user 	*/

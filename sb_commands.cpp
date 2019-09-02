@@ -987,11 +987,11 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                            {
                                                idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second  );
                                                ConvertStreamtoInt( data+i+8, 2, &index );
-                                               auto datastring = return_xml_data( conf, index );
+                                               auto datastring = return_sma_description(index);
 		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %s %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, datastring, conf->returnkeylist[return_key].units );
-                                               UpdateLiveList(flag, unit[0], "%s",  idate, conf->returnkeylist[return_key].description, -1.0, -1, datastring.c_str(), conf->returnkeylist[return_key].units, conf->returnkeylist[return_key].persistent, livedatalen, livedatalist );
+                                               UpdateLiveList(flag, unit[0], "%s",  idate, conf->returnkeylist[return_key].description, -1.0, -1, datastring, conf->returnkeylist[return_key].units, conf->returnkeylist[return_key].persistent, livedatalen, livedatalist );
                                                if( (data+i+1)[0]==0x20 && (data+i+2)[0] == 0x82 ) {
-                                                    strcpy(unit[0]->Inverter, datastring.c_str());
+                                                    strcpy(unit[0]->Inverter, datastring);
                                                }
 					       break;
                                            }

@@ -18,9 +18,11 @@
 /* compile gcc -lbluetooth -lmysqlclient -g -o smatool smatool.c */
 
 #define _XOPEN_SOURCE 700 /* glibc needs this */
+#include <algorithm>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <utility>
 #include <sys/socket.h>
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/rfcomm.h>
@@ -31,8 +33,6 @@
 #include <assert.h>
 #include <sys/types.h>
 #include "sma_mysql.hpp"
-#include <libxml2/libxml/parser.h>
-#include <libxml2/libxml/xpath.h>
 #include "smatool.hpp"
 #include "sb_commands.hpp"
 #include <fmt/chrono.h>
@@ -1199,7 +1199,6 @@ static void InitConfig(ConfType* conf)
     conf->bt_timeout = 30;  
     strcpy( conf->Password, "0000" );  
     strcpy( conf->File, "sma.in" );  
-    strcpy( conf->Xml, "/usr/local/bin/smatool.xml" );  
     strcpy( conf->MySqlHost, "localhost" );  
     strcpy( conf->MySqlDatabase, "smatool" );  
     strcpy( conf->MySqlUser, "" );  
@@ -1254,8 +1253,6 @@ static int GetConfig(ConfType* conf, const FlagType* flag)
                 {
                     if( strcmp( variable, "BTAddress" ) == 0 )
                        strcpy( conf->BTAddress, value );  
-                    if( strcmp( variable, "Xml" ) == 0 )
-                       strcpy( conf->Xml, value );  
                     if( strcmp( variable, "BTTimeout" ) == 0 )
                        conf->bt_timeout =  atoi(value);  
                     if( strcmp( variable, "Password" ) == 0 )
@@ -1341,77 +1338,22 @@ int GetInverterSetting(const ConfType* conf, const FlagType* flag)
     return( 0 );
 }
 
-static xmlDocPtr getdoc(const char* docname)
+const char* return_sma_description(int index)
 {
-	xmlDocPtr doc;
-	doc = xmlParseFile(docname);
-	
-	if (doc == NULL ) {
-		fmt::fprintf(stderr,"Document not parsed successfully. \n");
-		return NULL;
-	}
-
-	return doc;
-}
-
-static xmlXPathObjectPtr getnodeset(xmlDocPtr doc, const char* xpath)
-{
-	xmlXPathContextPtr context;
-	xmlXPathObjectPtr result;
-
-	context = xmlXPathNewContext(doc);
-	if (context == NULL) {
-		fmt::printf("Error in xmlXPathNewContext\n");
-		return NULL;
-	}
-	result = xmlXPathEvalExpression((const xmlChar*)xpath, context);
-	xmlXPathFreeContext(context);
-	if (result == NULL) {
-		fmt::printf("Error in xmlXPathEvalExpression\n");
-		return NULL;
-	}
-	if(xmlXPathNodeSetIsEmpty(result->nodesetval)){
-		xmlXPathFreeObject(result);
-                fmt::printf("No result\n");
-		return NULL;
-	}
-	return result;
-}
-
-std::string return_xml_data(const ConfType* conf, int index)
-{
-    xmlDocPtr doc;
-    xmlNodeSetPtr nodeset;
-    xmlNodePtr cur;
-    xmlXPathObjectPtr result;
-    std::string return_string;
-    int i;
-    xmlChar *keyword;
-		
-    auto xpath = fmt::sprintf("//Datamap/Map[@index='%d']", index);
-    doc = getdoc(conf->Xml);
-    result = getnodeset(doc, xpath.c_str());
-    if (result) {
-	nodeset = result->nodesetval;
-	for (i=0; i < nodeset->nodeNr; i++) {
-            cur = nodeset->nodeTab[i]->xmlChildrenNode;
-            while (cur != NULL ) {
-		if( xmlStrEqual(cur->name, (const xmlChar *)"Value")) {
-      		    keyword = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-                    return_string = (const char*)keyword;
-                    xmlFree(keyword);
-		}
-	    	cur = cur->next;
-            }
-	}
-	xmlXPathFreeObject (result);
-    }
-    else
-        fmt::printf( "\nfailed to getnodeset" );
-    xmlFreeDoc(doc);
-    xmlCleanupParser();
-
-    return return_string ;
+    static const std::pair<int, const char*> values[] = {
+#include "sma_map.ipp"
+    };
+    auto i = std::lower_bound(std::begin(values), std::end(values), index,
+            [] (decltype(values[0])& lhs, const int rhs) {
+            return lhs.first < rhs;
+        });
+    if (i == std::end(values)
+     || i->first != index)
+    {
+        fmt::printf("Failed to find XML data for idx %d\n", index);
+        exit(3);
+     }
+    return i->second;
 }
 
 /* Print a help message */
