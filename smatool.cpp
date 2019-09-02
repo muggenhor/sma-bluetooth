@@ -34,7 +34,6 @@
 #include <libxml2/libxml/parser.h>
 #include <libxml2/libxml/xpath.h>
 #include "smatool.hpp"
-#include "almanac.hpp"
 #include "sb_commands.hpp"
 #include <fmt/chrono.h>
 #include <fmt/format.h>
@@ -913,34 +912,6 @@ int auto_set_dates( ConfType * conf, FlagType * flag )
     return 1;
 }
 
-int is_light( ConfType * conf, FlagType * flag )
-/*  Check if all data done and past sunset or before sunrise */
-{
-    int	        light=1;
-
-    MySQL conn(conf->MySqlHost, conf->MySqlUser, conf->MySqlPwd, conf->MySqlDatabase);
-    //Get Start of day value
-    const char* SQLQUERY = "SELECT if(sunrise < NOW(),1,0) FROM Almanac WHERE date= DATE_FORMAT( NOW(), \"%Y-%m-%d\" ) ";
-    if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
-    auto res = conn.fetch_query(SQLQUERY);
-    if (auto row = res.fetch_row())  //if there is a result, update the row
-    {
-       if( atoi( (char *)row[0] ) == 0 ) light=0;
-    }
-    if( light ) {
-       SQLQUERY = "SELECT if( dd.datetime > al.sunset,1,0) FROM DayData as dd left join Almanac as al on al.date=DATE(dd.datetime) and al.date=DATE(NOW()) WHERE 1 ORDER BY dd.datetime DESC LIMIT 1";
-       if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
-       res = conn.fetch_query(SQLQUERY);
-       if (auto row = res.fetch_row())  //if there is a result, update the row
-       {
-          if( atoi( (char *)row[0] ) == 1 ) light=0;
-       }
-    }
-    if (flag->debug == 1) fmt::printf("Before close: %s\n",SQLQUERY);
-    
-    return light;
-}
-
 //Set a value depending on inverter
 void  SetInverterType( ConfType * conf, UnitType ** unit )  
 {
@@ -1145,11 +1116,6 @@ time_t ConvertStreamtoTime(const unsigned char* stream, int length, time_t* valu
 // Set switches to save lots of strcmps
 static void SetSwitches(const ConfType* conf, FlagType* flag)
 {
-    //Check if all location variables are set
-    if(( conf->latitude_f <= 180 )&&( conf->longitude_f <= 180 ))
-        flag->location=1;
-    else
-        flag->location=0;
     //Check if all Mysql variables are set
     if(( strlen(conf->MySqlUser) > 0 )
 	 &&( strlen(conf->MySqlPwd) > 0 )
@@ -1234,8 +1200,6 @@ static void InitConfig(ConfType* conf)
     strcpy( conf->Password, "0000" );  
     strcpy( conf->File, "sma.in" );  
     strcpy( conf->Xml, "/usr/local/bin/smatool.xml" );  
-    conf->latitude_f = 999 ;  
-    conf->longitude_f = 999 ;  
     strcpy( conf->MySqlHost, "localhost" );  
     strcpy( conf->MySqlDatabase, "smatool" );  
     strcpy( conf->MySqlUser, "" );  
@@ -1250,7 +1214,6 @@ static void InitFlag(FlagType* flag)
     flag->debug=0;         /* debug flag */
     flag->verbose=0;       /* verbose flag */
     flag->daterange=0;     /* is system using a daterange */
-    flag->location=0;     /* is system using a daterange */
     flag->test=0;     /* is system using a daterange */
     flag->mysql=0;     /* is system using a daterange */
     flag->file=0;     /* is system using a daterange */
@@ -1299,10 +1262,6 @@ static int GetConfig(ConfType* conf, const FlagType* flag)
                        strcpy( conf->Password, value );  
                     if( strcmp( variable, "File" ) == 0 )
                        strcpy( conf->File, value );  
-                    if( strcmp( variable, "Latitude" ) == 0 )
-                       conf->latitude_f = atof(value) ;  
-                    if( strcmp( variable, "Longitude" ) == 0 )
-                       conf->longitude_f = atof(value) ;  
                     if( strcmp( variable, "MySqlHost" ) == 0 )
                        strcpy( conf->MySqlHost, value );  
                     if( strcmp( variable, "MySqlDatabase" ) == 0 )
@@ -1475,10 +1434,6 @@ void PrintHelp()
     fmt::printf( "  -t,  --timeout TIMEOUT                   bluetooth timeout (secs) default 5\n" );
     fmt::printf( "  -p,  --password PASSWORD                 inverter user password default 0000\n" );
     fmt::printf( "  -f,  --file FILENAME                     command file default sma.in.new\n" );
-    fmt::printf( "Location Information to calculate sunset and sunrise so inverter is not\n" );
-    fmt::printf( "queried in the dark\n" );
-    fmt::printf( "  -lat,  --latitude LATITUDE               location latitude -180 to 180 deg\n" );
-    fmt::printf( "  -lon,  --longitude LONGITUDE             location longitude -90 to 90 deg\n" );
     fmt::printf( "Mysql database information\n" );
     fmt::printf( "  -H,  --mysqlhost MYSQLHOST               mysql host default localhost\n");
     fmt::printf( "  -D,  --mysqldb MYSQLDATBASE              mysql database default smatool\n");
@@ -1492,7 +1447,7 @@ void PrintHelp()
 }
 
 /* Init Config to default values */
-int ReadCommandConfig( ConfType *conf, FlagType *flag, int argc, char **argv, int * no_dark, int * install, int * update )
+int ReadCommandConfig( ConfType *conf, FlagType *flag, int argc, char **argv, int * install, int * update )
 {
     int	i;
 
@@ -1543,20 +1498,6 @@ int ReadCommandConfig( ConfType *conf, FlagType *flag, int argc, char **argv, in
             if (i<argc){
 	        strcpy(conf->File,argv[i]);
             }
-	}
-	else if ((strcmp(argv[i],"-n")==0)||(strcmp(argv[i],"--nodark")==0)) (*no_dark)=1;
-
-	else if ((strcmp(argv[i],"-lat")==0)||(strcmp(argv[i],"--latitude")==0)){
-	    i++;
-	    if(i<argc){
-		conf->latitude_f=atof(argv[i]);
-	    }
-	}
-	else if ((strcmp(argv[i],"-long")==0)||(strcmp(argv[i],"--longitude")==0)){
-	    i++;
-	    if(i<argc){
-		conf->longitude_f=atof(argv[i]);
-	    }
 	}
 	else if ((strcmp(argv[i],"-H")==0)||(strcmp(argv[i],"--mysqlhost")==0)){
             i++;
@@ -1615,7 +1556,7 @@ int main(int argc, char **argv)
     FlagType 		flag;
     int 		maximumUnits=1;
     UnitType 		*unit;
-    int 		install=0, update=0, no_dark=0;
+    int 		install=0, update=0;
     unsigned char 	tzhex[2] = { 0 };
     int			archdatalen=0, livedatalen=0;
     ArchDataType 	*archdatalist=NULL;
@@ -1632,13 +1573,13 @@ int main(int argc, char **argv)
     InitConfig( &conf );
     InitFlag( &flag );
     // read command arguments needed so can get config
-    if( ReadCommandConfig( &conf, &flag, argc, argv, &no_dark, &install, &update ) < 0 )
+    if( ReadCommandConfig( &conf, &flag, argc, argv, &install, &update ) < 0 )
         exit(0);
     // read Config file
     if( GetConfig( &conf, &flag ) < 0 )
         exit(-1);
     // read command arguments  again - they overide config
-    if( ReadCommandConfig( &conf, &flag, argc, argv, &no_dark ,&install, &update ) < 0 )
+    if( ReadCommandConfig( &conf, &flag, argc, argv, &install, &update ) < 0 )
         exit(0);
     // read Inverter Setting file
     //if( GetInverterSetting( &conf ) < 0 )
@@ -1662,16 +1603,6 @@ int main(int argc, char **argv)
     SetInverterType( &conf, &unit );
     // Get Local Timezone offset in seconds
     get_timezone_in_seconds( &flag, tzhex );
-    // Location based information to avoid quering Inverter in the dark
-    if((flag.location==1)&&(flag.mysql==1)) {
-        if( flag.debug == 1 ) fmt::printf( "Before todays Almanac\n" ); 
-        if( ! todays_almanac( &conf, flag.debug ) ) {
-           auto&& sunrise_time = sunrise(&conf, flag.debug);
-           auto&& sunset_time = sunset(&conf, flag.debug);
-           if( flag.verbose==1) fmt::printf( "sunrise=%s sunset=%s\n", sunrise_time, sunset_time );
-           update_almanac(&conf, sunrise_time.c_str(), sunset_time.c_str(), flag.debug);
-        }
-    }
     if( flag.mysql==1 ) { 
         if( flag.debug == 1 ) fmt::printf( "Before Check Schema\n" ); 
        	if( check_schema( &conf, &flag,  SCHEMA ) != 1 )
@@ -1683,49 +1614,47 @@ int main(int argc, char **argv)
     }
     else
         if( flag.verbose == 1 ) fmt::printf( "QUERY RANGE    from %s to %s\n", conf.datefrom, conf.dateto ); 
-    if(( flag.daterange==1 )&&((flag.location=0)||(flag.mysql==0)||no_dark==1||is_light( &conf, &flag )))
-    {
-	if (flag.debug ==1) fmt::printf("Address %s\n",conf.BTAddress);
-        //Connect to Inverter
-        const int s = ConnectSocket(&conf);
-        if (s == -1)
-           exit(-1);
+    if (flag.debug ==1) fmt::printf("Address %s\n",conf.BTAddress);
+    //Connect to Inverter
+    const int s = ConnectSocket(&conf);
+    if (s == -1)
+       exit(-1);
 
-        if (flag.file ==1)
-	  fp=fopen(conf.File,"r");
-        else
-	  fp=fopen("/etc/sma.in","r");
+    if (flag.file ==1)
+      fp=fopen(conf.File,"r");
+    else
+      fp=fopen("/etc/sma.in","r");
 
-   	// convert address
+    // convert address
 /*
-   	dest_address[5] = conv(strtok(conf.BTAddress,":"));
-   	dest_address[4] = conv(strtok(NULL,":"));
-   	dest_address[3] = conv(strtok(NULL,":"));
-   	dest_address[2] = conv(strtok(NULL,":"));
-   	dest_address[1] = conv(strtok(NULL,":"));
-   	dest_address[0] = conv(strtok(NULL,":"));
+    dest_address[5] = conv(strtok(conf.BTAddress,":"));
+    dest_address[4] = conv(strtok(NULL,":"));
+    dest_address[3] = conv(strtok(NULL,":"));
+    dest_address[2] = conv(strtok(NULL,":"));
+    dest_address[1] = conv(strtok(NULL,":"));
+    dest_address[0] = conv(strtok(NULL,":"));
 */
 
-        OpenInverter(&conf, &flag, &unit, s, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-        InverterCommand("login",               &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-        InverterCommand("typelabel",           &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-        InverterCommand("typelabel",           &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-        InverterCommand("startuptime",         &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-        InverterCommand("getacvoltage",        &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-        InverterCommand("getenergyproduction", &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-        InverterCommand("getspotdcpower",      &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-        InverterCommand("getspotdcvoltage",    &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-        InverterCommand("getspotacpower",      &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-        InverterCommand("getgridfreq",         &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-        InverterCommand("maxACPower",          &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-        InverterCommand("maxACPowerTotal",     &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-        InverterCommand("ACPowerTotal",        &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-        InverterCommand("DeviceStatus",        &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-        InverterCommand("getrangedata",        &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-        InverterCommand("logoff",              &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+    OpenInverter(&conf, &flag, &unit, s, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+    InverterCommand("login",               &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+    InverterCommand("typelabel",           &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+    InverterCommand("typelabel",           &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+    InverterCommand("startuptime",         &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+    InverterCommand("getacvoltage",        &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+    InverterCommand("getenergyproduction", &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+    InverterCommand("getspotdcpower",      &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+    InverterCommand("getspotdcvoltage",    &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+    InverterCommand("getspotacpower",      &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+    InverterCommand("getgridfreq",         &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+    InverterCommand("maxACPower",          &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+    InverterCommand("maxACPowerTotal",     &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+    InverterCommand("ACPowerTotal",        &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+    InverterCommand("DeviceStatus",        &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+    if (flag.daterange)
+      InverterCommand("getrangedata",        &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+    InverterCommand("logoff",              &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
 
-        close(s);
-    }
+    close(s);
 
     if (flag.mysql==1)
     {

@@ -58,8 +58,6 @@ typedef struct{
     char Config[80];            /*--config   	-c 	*/
     char File[80];              /*--file     	-f 	*/
     char Xml[80];               /*--xml     	-x 	*/
-    float latitude_f;           /*--latitude  	-la 	*/
-    float longitude_f;          /*--longitude 	-lo 	*/
     char MySqlHost[40];         /*--mysqlhost   -h 	*/
     char MySqlDatabase[20];     /*--mysqldb     -d 	*/
     char MySqlUser[80];         /*--mysqluser   -user 	*/
@@ -79,7 +77,6 @@ typedef struct{
     unsigned int debug;         /* debug flag */
     unsigned int verbose;       /* verbose flag */
     unsigned int daterange;     /* is system using a daterange */
-    unsigned int location;     /* is system using a daterange */
     unsigned int test;     /* is system using a daterange */
     unsigned int mysql;     /* is system using a daterange */
     unsigned int file;     /* is system using a daterange */

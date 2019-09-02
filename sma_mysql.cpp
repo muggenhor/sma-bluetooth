@@ -102,19 +102,6 @@ int install_mysql_tables(const ConfType* conf, const FlagType* flag, const char*
        if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
        conn.query(SQLQUERY.c_str());
 
-       SQLQUERY = "CREATE TABLE `Almanac` ( `id` bigint(20) NOT NULL \
-          AUTO_INCREMENT, \
-          `date` date NOT NULL,\
-          `sunrise` datetime DEFAULT NULL,\
-          `sunset` datetime DEFAULT NULL,\
-          `CHANGETIME` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, \
-           PRIMARY KEY (`id`),\
-           UNIQUE KEY `date` (`date`)\
-           ) ENGINE=MyISAM";
-
-       if (flag->debug == 1) fmt::printf("%s\n",SQLQUERY);
-       conn.query(SQLQUERY.c_str());
-  
        SQLQUERY = "CREATE TABLE `DayData` ( \
            `DateTime` datetime NOT NULL, \
            `Inverter` varchar(30) NOT NULL, \
