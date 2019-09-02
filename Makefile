@@ -4,14 +4,13 @@ CXXFLAGS := -std=c++14 -fstack-protector-all -g3 -O3 -Wall -Wextra -Werror -Wno-
 
 all: smatool
 
-smatool: smatool.o repost.o sma_mysql.o almanac.o sb_commands.o
-	$(CXX) $^ -lxml2 -lmysqlclient -lbluetooth -lcurl -lm -o $@
+smatool: smatool.o sma_mysql.o almanac.o sb_commands.o
+	$(CXX) $^ -lxml2 -lmysqlclient -lbluetooth -lm -o $@
 
 %.o: %.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 smatool.o: smatool.cpp sma_mysql.hpp
-repost.o: repost.cpp sma_mysql.hpp
 sma_mysql.o: sma_mysql.cpp
 almanac.o: almanac.cpp
 sma_pvoutput.o: sma_pvoutput.cpp

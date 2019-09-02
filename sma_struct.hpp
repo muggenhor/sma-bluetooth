@@ -64,9 +64,6 @@ typedef struct{
     char MySqlDatabase[20];     /*--mysqldb     -d 	*/
     char MySqlUser[80];         /*--mysqluser   -user 	*/
     char MySqlPwd[80];          /*--mysqlpwd    -pwd 	*/
-    char PVOutputURL[80];       /*--pvouturl    -url 	*/
-    char PVOutputKey[80];       /*--pvoutkey    -key 	*/
-    char PVOutputSid[20];       /*--pvoutsid    -sid 	*/
     char Setting[80];           /*inverter model data*/
     unsigned int MySUSyID[2];   /*SUSyID  of this app*/
     unsigned int MySerial[4];   /*Serial  of this app*/
@@ -86,8 +83,6 @@ typedef struct{
     unsigned int test;     /* is system using a daterange */
     unsigned int mysql;     /* is system using a daterange */
     unsigned int file;     /* is system using a daterange */
-    unsigned int post;     /* is system using a daterange */
-    unsigned int repost;     /* is system using a daterange */
 } FlagType;
 
 typedef struct{

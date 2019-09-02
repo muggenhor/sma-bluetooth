@@ -15,7 +15,7 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-/* compile gcc -lbluetooth -lcurl -lmysqlclient -g -o smatool smatool.c */
+/* compile gcc -lbluetooth -lmysqlclient -g -o smatool smatool.c */
 
 #define _XOPEN_SOURCE 700 /* glibc needs this */
 #include <stdio.h>
@@ -30,8 +30,6 @@
 #include <time.h>
 #include <assert.h>
 #include <sys/types.h>
-#include <curl/curl.h>
-#include "repost.hpp"
 #include "sma_mysql.hpp"
 #include <libxml2/libxml/parser.h>
 #include <libxml2/libxml/xpath.h>
@@ -1166,13 +1164,6 @@ static void SetSwitches(const ConfType* conf, FlagType* flag)
         flag->file=1;
     else
         flag->file=0;
-    //Check if all PVOutput variables are set
-    if(( strlen(conf->PVOutputURL) > 0 )
-	 &&( strlen(conf->PVOutputKey) > 0 )
-	 &&( strlen(conf->PVOutputSid) > 0 ))
-        flag->post=1;
-    else
-        flag->post=0;
     if(( strlen(conf->datefrom) > 0 )
 	 &&( strlen(conf->dateto) > 0 ))
         flag->daterange=1;
@@ -1249,9 +1240,6 @@ static void InitConfig(ConfType* conf)
     strcpy( conf->MySqlDatabase, "smatool" );  
     strcpy( conf->MySqlUser, "" );  
     strcpy( conf->MySqlPwd, "" );  
-    strcpy( conf->PVOutputURL, "http://pvoutput.org/service/r2/addstatus.jsp" );  
-    strcpy( conf->PVOutputKey, "" );  
-    strcpy( conf->PVOutputSid, "" );  
     strcpy( conf->datefrom, "" );  
     strcpy( conf->dateto, "" );  
 }
@@ -1266,8 +1254,6 @@ static void InitFlag(FlagType* flag)
     flag->test=0;     /* is system using a daterange */
     flag->mysql=0;     /* is system using a daterange */
     flag->file=0;     /* is system using a daterange */
-    flag->post=0;     /* is system using a daterange */
-    flag->repost=0;     /* is system using a daterange */
 }
 
 /* read Config from file */
@@ -1325,12 +1311,6 @@ static int GetConfig(ConfType* conf, const FlagType* flag)
                        strcpy( conf->MySqlUser, value );  
                     if( strcmp( variable, "MySqlPwd" ) == 0 )
                        strcpy( conf->MySqlPwd, value );  
-                    //if( strcmp( variable, "PVOutputURL" ) == 0 )
-                     //  strcpy( conf->PVOutputURL, value );  
-                    if( strcmp( variable, "PVOutputKey" ) == 0 )
-                       strcpy( conf->PVOutputKey, value );  
-                    if( strcmp( variable, "PVOutputSid" ) == 0 )
-                       strcpy( conf->PVOutputSid, value );  
                 }
             }
         }
@@ -1508,11 +1488,6 @@ void PrintHelp()
     fmt::printf( "privelege user to allow the creation of databases and tables, use command line \n" );
     fmt::printf( "       --INSTALL                           install mysql data tables\n");
     fmt::printf( "       --UPDATE                            update mysql data tables\n");
-    fmt::printf( "PVOutput.org (A free solar information system) Configs\n" );
-    fmt::printf( "  -url,  --pvouturl PVOUTURL               pvoutput.org live url\n");
-    fmt::printf( "  -key,  --pvoutkey PVOUTKEY               pvoutput.org key\n");
-    fmt::printf( "  -sid,  --pvoutsid PVOUTSID               pvoutput.org sid\n");
-    fmt::printf( "  -repost                                  verify and repost data if different\n");
     fmt::printf( "\n\n" );
 }
 
@@ -1544,10 +1519,6 @@ int ReadCommandConfig( ConfType *conf, FlagType *flag, int argc, char **argv, in
 	    if(i<argc){
 		strcpy(conf->dateto,argv[i]);
 	    }
-	}
-	else if (strcmp(argv[i],"-repost")==0){
-	    i++;
-            flag->repost=1;
 	}
         else if ((strcmp(argv[i],"-a")==0)||(strcmp(argv[i],"--address")==0)){
             i++;
@@ -1611,24 +1582,6 @@ int ReadCommandConfig( ConfType *conf, FlagType *flag, int argc, char **argv, in
 		strcpy(conf->MySqlPwd,argv[i]);
             }
 	}				
-	else if ((strcmp(argv[i],"-url")==0)||(strcmp(argv[i],"--pvouturl")==0)){
-	    i++;
-	    if(i<argc){
-		strcpy(conf->PVOutputURL,argv[i]);
-	    }
-	}
-	else if ((strcmp(argv[i],"-key")==0)||(strcmp(argv[i],"--pvoutkey")==0)){
-	    i++;
-	    if(i<argc){
-		strcpy(conf->PVOutputKey,argv[i]);
-	    }
-	}
-	else if ((strcmp(argv[i],"-sid")==0)||(strcmp(argv[i],"--pvoutsid")==0)){
-	    i++;
-	    if(i<argc){
-		strcpy(conf->PVOutputSid,argv[i]);
-	    }
-	}
 	else if ((strcmp(argv[i],"-h")==0) || (strcmp(argv[i],"--help") == 0 ))
         {
            PrintHelp();
@@ -1662,16 +1615,11 @@ int main(int argc, char **argv)
     FlagType 		flag;
     int 		maximumUnits=1;
     UnitType 		*unit;
-    int			i;
     int 		install=0, update=0, no_dark=0;
-    int 		error=0;
     unsigned char 	tzhex[2] = { 0 };
     int			archdatalen=0, livedatalen=0;
     ArchDataType 	*archdatalist=NULL;
     LiveDataType 	*livedatalist=NULL;
-
-    CURL *curl;
-    CURLcode result;
 
     unit=(UnitType *)malloc( sizeof(UnitType) * maximumUnits);
     if( unit == NULL ) {
@@ -1779,133 +1727,17 @@ int main(int argc, char **argv)
         close(s);
     }
 
-    if ((flag.post ==1)&&(flag.mysql==1)&&(error==0)){
+    if (flag.mysql==1)
+    {
 	/* Connect to database */
         MySQL conn(conf.MySqlHost, conf.MySqlUser, conf.MySqlPwd, conf.MySqlDatabase );
         std::string SQLQUERY;
-        for( i=1; i<archdatalen; i++ ) //Start at 1 as the first record is a dummy
+        for (int i = 1; i < archdatalen; ++i) // Start at 1 as the first record is a dummy
         {
 	    SQLQUERY = fmt::sprintf("INSERT INTO DayData ( DateTime, Inverter, Serial, CurrentPower, EtotalToday ) VALUES ( FROM_UNIXTIME(%ld),\'%s\',%llu,%0.f, %.3f ) ON DUPLICATE KEY UPDATE DateTime=Datetime, Inverter=VALUES(Inverter), Serial=VALUES(Serial), CurrentPower=VALUES(CurrentPower), EtotalToday=VALUES(EtotalToday)",(archdatalist+i)->date, (archdatalist+i)->inverter, (archdatalist+i)->serial, (archdatalist+i)->current_value, (archdatalist+i)->accum_value);
 	    if (flag.debug == 1) fmt::printf("%s\n",SQLQUERY);
             conn.query(SQLQUERY.c_str());
             //getchar();
-        }
-
-        std::string		batch_string;
-        int			batch_count = 0;
-        unsigned long long 	inverter_serial;
-        
-        //Update Mysql with live data 
-        live_mysql(&conf, &flag, livedatalist, livedatalen);
-        fmt::printf( "\nbefore update to PVOutput" ); getchar();
-        /* Connect to database */
-	inverter_serial=(unit[0].Serial[0]<<24)+(unit[0].Serial[1]<<16)+(unit[0].Serial[2]<<8)+unit[0].Serial[3];
-        SQLQUERY = fmt::sprintf("SELECT Value FROM LiveData WHERE Inverter = \'%s\' and Serial=\'%lld\' and Description=\'Max Phase 1\' ORDER BY DateTime DESC LIMIT 1", unit[0].Inverter, inverter_serial);
-        if (flag.debug == 1) fmt::printf("%s\n",SQLQUERY); //getchar();
-        auto res = conn.fetch_query(SQLQUERY.c_str());
- 
-        int max_output = 0;
-        if (auto row = res.fetch_row())
-        {
-            max_output = atoi(row[0]) * 1.2;
-        }
-        SQLQUERY = fmt::sprintf("SELECT DATE_FORMAT(dd1.DateTime,\'%%Y%%m%%d\'), DATE_FORMAT(dd1.DateTime,\'%%H:%%i\'), ROUND((dd1.ETotalToday-dd2.EtotalToday)*1000), if( dd1.CurrentPower < %d ,dd1.CurrentPower, %d ), dd1.DateTime FROM DayData as dd1 join DayData as dd2 on dd2.DateTime=DATE_FORMAT(dd1.DateTime,\'%%Y-%%m-%%d 00:00:00\') WHERE dd1.DateTime>=Date_Sub(CURDATE(),INTERVAL 13 DAY) and dd1.PVOutput IS NULL and dd1.CurrentPower>0 ORDER BY dd1.DateTime ASC", max_output, max_output );
-        if (flag.debug == 1) fmt::printf("%s\n",SQLQUERY);
-        res = conn.fetch_query(SQLQUERY.c_str());
-        batch_count=0;
-        if (res.num_rows() == 1)
-        {
-            if (auto row = res.fetch_row())  //Need to update these
-            {
-	        auto compurl = fmt::sprintf("%s?d=%s&t=%s&v1=%s&v2=%s&key=%s&sid=%s",conf.PVOutputURL,row[0],row[1],row[2],row[3],conf.PVOutputKey,conf.PVOutputSid);
-	        if (flag.debug == 1) fmt::printf("url = %s\n",compurl); 
-                {
-                    
-	            curl = curl_easy_init();
-	            if (curl){
-	                curl_easy_setopt(curl, CURLOPT_URL, compurl.c_str());
-		        curl_easy_setopt(curl, CURLOPT_FAILONERROR, compurl.c_str());
-		        result = curl_easy_perform(curl);
-	                if (flag.debug == 1) fmt::printf("result = %d\n",result);
-		        curl_easy_cleanup(curl);
-                        if( result==0 ) 
-                        {
-                            SQLQUERY = fmt::sprintf("UPDATE DayData  set PVOutput=NOW() WHERE DateTime=\"%s\"  ", row[4]);
-                            if (flag.debug == 1) fmt::printf("%s\n",SQLQUERY);
-                            conn.query(SQLQUERY.c_str());
-                        }
-	            }
-                }
-            }
-        }
-        else
-        {
-            for (auto row = res.fetch_row(); row; row = res.fetch_row())  //Need to update these
-            {
-                sleep(2);
-                if( batch_count > 0 )
-                    batch_string = fmt::sprintf("%s;%s,%s,%s,%s", batch_string, row[0], row[1], row[2], row[3] ); 
-                else
-                    batch_string = fmt::sprintf("%s,%s,%s,%s", row[0], row[1], row[2], row[3] ); 
-                batch_count++;
-                if( batch_count == 30 )
-                {
-	            curl = curl_easy_init();
-	            if (curl){
-	                auto compurl = fmt::sprintf("http://pvoutput.org/service/r2/addbatchstatus.jsp?data=%s&key=%s&sid=%s",batch_string,conf.PVOutputKey,conf.PVOutputSid);
-	                if (flag.debug == 1) fmt::printf("url = %s\n",compurl); 
-	                curl_easy_setopt(curl, CURLOPT_URL, compurl.c_str());
-		        curl_easy_setopt(curl, CURLOPT_FAILONERROR, compurl.c_str());
-		        result = curl_easy_perform(curl);
-                        sleep(1);
-	                if (flag.debug == 1) fmt::printf("result = %d\n",result);
-		        curl_easy_cleanup(curl);
-                        if( result==0 ) 
-                        {
-                           SQLQUERY = fmt::sprintf("SELECT DATE_FORMAT(dd1.DateTime,\'%%Y%%m%%d\'), DATE_FORMAT(dd1.DateTime,\'%%H:%%i\'), ROUND((dd1.ETotalToday-dd2.EtotalToday)*1000), dd1.CurrentPower, dd1.DateTime FROM DayData as dd1 join DayData as dd2 on dd2.DateTime=DATE_FORMAT(dd1.DateTime,\'%%Y-%%m-%%d 00:00:00\') WHERE dd1.DateTime>=Date_Sub(CURDATE(),INTERVAL 13 DAY) and dd1.PVOutput IS NULL and dd1.CurrentPower>0 ORDER BY dd1.DateTime ASC limit %d", batch_count);
-                           if (flag.debug == 1) fmt::printf("%s\n",SQLQUERY);
-                           auto res1 = conn.fetch_query(SQLQUERY.c_str());
-                           for (auto row1 = res1.fetch_row(); row1; row1 = res1.fetch_row())  //Need to update these
-                           {
-                               SQLQUERY = fmt::sprintf("UPDATE DayData set PVOutput=NOW() WHERE DateTime=\"%s\"  ", row1[4]);
-                               if (flag.debug == 1) fmt::printf("%s\n",SQLQUERY);
-                               conn.query(SQLQUERY.c_str());
-                           }
-                        }
-                        else
-                            break;
-	            }
-                    batch_count = 0;
-                    batch_string.clear();
-                }
-            }
-            if( batch_count > 0 )
-            {
-	        curl = curl_easy_init();
-	        if (curl){
-	            auto compurl = fmt::sprintf("http://pvoutput.org/service/r2/addbatchstatus.jsp?data=%s&key=%s&sid=%s",batch_string,conf.PVOutputKey,conf.PVOutputSid);
-	            if (flag.debug == 1) fmt::printf("url = %s\n",compurl); 
-	            curl_easy_setopt(curl, CURLOPT_URL, compurl.c_str());
-	            curl_easy_setopt(curl, CURLOPT_FAILONERROR, compurl.c_str());
-	            result = curl_easy_perform(curl);
-                    sleep(1);
-	            if (flag.debug == 1) fmt::printf("result = %d\n",result);
-		    curl_easy_cleanup(curl);
-                    if( result==0 ) 
-                    {
-                       SQLQUERY = fmt::sprintf("SELECT DATE_FORMAT(dd1.DateTime,\'%%Y%%m%%d\'), DATE_FORMAT(dd1.DateTime,\'%%H:%%i\'), ROUND((dd1.ETotalToday-dd2.EtotalToday)*1000), dd1.CurrentPower, dd1.DateTime FROM DayData as dd1 join DayData as dd2 on dd2.DateTime=DATE_FORMAT(dd1.DateTime,\'%%Y-%%m-%%d 00:00:00\') WHERE dd1.DateTime>=Date_Sub(CURDATE(),INTERVAL 1 DAY) and dd1.PVOutput IS NULL and dd1.CurrentPower>0 ORDER BY dd1.DateTime ASC limit %d", batch_count);
-                       if (flag.debug == 1) fmt::printf("%s\n",SQLQUERY);
-                       auto res1 = conn.fetch_query(SQLQUERY.c_str());
-                       for (auto row1 = res1.fetch_row(); row1; row1 = res1.fetch_row())  //Need to update these
-                       {
-                           SQLQUERY = fmt::sprintf("UPDATE DayData set PVOutput=NOW() WHERE DateTime=\"%s\"  ", row1[4]);
-                           if (flag.debug == 1) fmt::printf("%s\n",SQLQUERY);
-                           conn.query(SQLQUERY.c_str());
-                       }
-                    }
-	        }
-                batch_count = 0;
-            }
         }
     }
 
@@ -1915,10 +1747,6 @@ int main(int argc, char **argv)
     if( livedatalen > 0 )
         free( livedatalist );
     livedatalen=0;
-    if ((flag.repost ==1)&&(error==0)){
-        fmt::printf( "\nrepost\n" ); //getchar();
-        sma_repost(&conf, &flag);
-}
 
 return 0;
 }
