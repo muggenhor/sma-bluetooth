@@ -1403,9 +1403,9 @@ int main(int argc, char **argv)
     int 		maximumUnits=1;
     UnitType 		*unit;
     unsigned char 	tzhex[2] = { 0 };
-    int			archdatalen=0, livedatalen=0;
+    int			archdatalen=0;
     ArchDataType 	*archdatalist=NULL;
-    LiveDataType 	*livedatalist=NULL;
+    std::vector<LiveDataType> livedata;
 
     unit=(UnitType *)malloc( sizeof(UnitType) * maximumUnits);
     if( unit == NULL ) {
@@ -1460,24 +1460,24 @@ int main(int argc, char **argv)
     dest_address[0] = conv(strtok(NULL,":"));
 */
 
-    OpenInverter(&conf, &flag, &unit, s, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-    InverterCommand("login",               &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-    InverterCommand("typelabel",           &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-    InverterCommand("typelabel",           &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-    InverterCommand("startuptime",         &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-    InverterCommand("getacvoltage",        &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-    InverterCommand("getenergyproduction", &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-    InverterCommand("getspotdcpower",      &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-    InverterCommand("getspotdcvoltage",    &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-    InverterCommand("getspotacpower",      &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-    InverterCommand("getgridfreq",         &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-    InverterCommand("maxACPower",          &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-    InverterCommand("maxACPowerTotal",     &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-    InverterCommand("ACPowerTotal",        &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-    InverterCommand("DeviceStatus",        &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+    OpenInverter(&conf, &flag, &unit, s, &archdatalist, &archdatalen, livedata);
+    InverterCommand("login",               &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
+    InverterCommand("typelabel",           &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
+    InverterCommand("typelabel",           &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
+    InverterCommand("startuptime",         &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
+    InverterCommand("getacvoltage",        &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
+    InverterCommand("getenergyproduction", &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
+    InverterCommand("getspotdcpower",      &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
+    InverterCommand("getspotdcvoltage",    &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
+    InverterCommand("getspotacpower",      &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
+    InverterCommand("getgridfreq",         &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
+    InverterCommand("maxACPower",          &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
+    InverterCommand("maxACPowerTotal",     &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
+    InverterCommand("ACPowerTotal",        &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
+    InverterCommand("DeviceStatus",        &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
     if (flag.daterange)
-      InverterCommand("getrangedata",        &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
-    InverterCommand("logoff",              &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, &livedatalist, &livedatalen);
+      InverterCommand("getrangedata",        &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
+    InverterCommand("logoff",              &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
 
     close(s);
 
@@ -1494,9 +1494,6 @@ int main(int argc, char **argv)
     if( archdatalen > 0 )
         free( archdatalist );
     archdatalen=0;
-    if( livedatalen > 0 )
-        free( livedatalist );
-    livedatalen=0;
 
 return 0;
 }
