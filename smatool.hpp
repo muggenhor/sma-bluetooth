@@ -1,9 +1,10 @@
 #pragma once
 #include "sma_struct.hpp"
 #include <string>
+#include <vector>
 
-extern unsigned char* ReadStream(const ConfType* conf, const FlagType* flag, ReadRecordType* readRecord, int s,
-                                 unsigned char* stream, int* streamlen, int* datalen, const unsigned char* last_sent,
+std::vector<unsigned char> ReadStream(const ConfType* conf, const FlagType* flag, ReadRecordType* readRecord, int s,
+                                 unsigned char* stream, int* streamlen, const unsigned char* last_sent,
                                  int cc, int* terminated, int* togo);
 const char* return_sma_description(int index);
 extern long ConvertStreamtoLong( unsigned char * stream, int length, unsigned long long * value );

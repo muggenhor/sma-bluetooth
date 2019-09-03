@@ -1083,31 +1083,27 @@ static void SetSwitches(const ConfType* conf, FlagType* flag)
         flag->daterange=0;
 }
 
-unsigned char* ReadStream(const ConfType* conf, const FlagType* flag, ReadRecordType* readRecord, const int s,
-                          unsigned char* stream, int* streamlen, int* datalen, const unsigned char* last_sent, int cc,
+std::vector<unsigned char> ReadStream(const ConfType* conf, const FlagType* flag, ReadRecordType* readRecord, const int s,
+                          unsigned char* stream, int* streamlen, const unsigned char* last_sent, int cc,
                           int* terminated, int* togo)
 {
    int	finished;
    int	finished_record;
-   int  i, j=0;
+   int  i;
 
    (*togo)=ConvertStreamtoInt( stream+43, 2, togo );
    if( flag->debug==1 ) fmt::printf( "togo=%d\n", (*togo) );
    i=59; //Initial position of data stream
-   (*datalen)=0;
-   unsigned char* datalist=(unsigned char *)malloc(sizeof(char));
+   std::vector<unsigned char> data;
    finished=0;
    finished_record=0;
    while( finished != 1 ) {
-     datalist=(unsigned char *)realloc(datalist,sizeof(char)*((*datalen)+(*streamlen)-i));
      while( finished_record != 1 ) {
         if( i> 500 ) break; //Somthing has gone wrong
         
         if(( i < (*streamlen) )&&(( (*terminated) != 1)||(i+3 < (*streamlen) ))) 
 	{
-           datalist[j]=stream[i];
-           j++;
-           (*datalen)=j;
+           data.push_back(stream[i]);
            i++;
         }
         else
@@ -1119,22 +1115,22 @@ unsigned char* ReadStream(const ConfType* conf, const FlagType* flag, ReadRecord
      {
          if (read_bluetooth(conf, flag, readRecord, s, streamlen, stream, cc, last_sent, terminated) != 0)
          {
-             free( datalist );
-             datalist = NULL;
+           data.clear();
          }
              
-         if( j> 0 ) i=18;
+         if (!data.empty())
+           i = 18;
      }
      else
          finished = 1;
    }
    if( flag->debug== 1 ) {
-     fmt::printf( "len=%d data=", (*datalen) );
-     for( i=0; i< (*datalen); i++ )
-        fmt::printf( "%02x ", datalist[i] );
+     fmt::printf("len=%d data=", data.size());
+     for (const auto c : data)
+       fmt::printf("%02x ", c);
      fmt::printf( "\n" );
    }
-   return datalist;
+   return data;
 }
 
 /* Init Config to default values */

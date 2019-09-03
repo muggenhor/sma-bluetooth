@@ -88,7 +88,6 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
    size_t len=0;
    ssize_t read;
    int   i, j, cc, rr;
-   int	 datalen=0;
    int   failedbluetooth=0;
    int   togo=0;
    int   finished;
@@ -109,7 +108,6 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
    ReadRecordType readRecord;
    char  *lineread;
    unsigned char * last_sent;
-   unsigned char * data;
    char	BTAddressBuf[20];
    char tt[10] = {48,48,48,48,48,48,48,48,48,48}; 
    char ti[3];	
@@ -119,7 +117,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
    float ptotal;
    float strength;
    int   found, already_read, terminated;
-   int   return_key, datalength=0;
+   int   return_key;
    int	 pass_i, send_count = 0;
    int	 persistent;
    int index;
@@ -639,11 +637,13 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
 			//fmt::printf("Current power = %i Watt\n",currentpower);
 			break;
 		    case 5: // extract current power $POW
-                        if(( data = ReadStream(conf, flag, &readRecord, s, received, &rr, &datalen, last_sent, cc, &terminated, &togo)) != NULL )
+                    {
+                        auto data = ReadStream(conf, flag, &readRecord, s, received, &rr, last_sent, cc, &terminated, &togo);
+                        if (!data.empty())
                         {
                            //fmt::printf( "\ndata=%02x:%02x:%02x:%02x:%02x:%02x\n", data[0], (data+1)[0], (data+2)[0], (data+3)[0], (data+4)[0], (data+5)[0] );
                             int gap;
-                            switch (data[3])
+                            switch (data.at(3))
                             {
                                 case 0x08: gap = 40; break;
                                 case 0x10: gap = 40; break;
@@ -652,35 +652,34 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
                                 default:
                                     abort();
                             }
-                            for ( i = 0; i<datalen; i+=gap ) 
+                            for (std::size_t i = 0; i < data.size(); i += gap)
                             {
-                                idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second );
-                                ConvertStreamtoFloat( data+i+8, 3, &currentpower_total );
+                                idate = ConvertStreamtoTime(&data[i + 4], 4, &idate, &day, &month, &year, &hour, &minute, &second);
+                                ConvertStreamtoFloat(&data[i + 8], 3, &currentpower_total);
                                 return_key=-1;
                                 for (unsigned int j = 0; j < conf->returnkeys.size(); j++)
                                 {
-                                    if(( (data+i+1)[0] == conf->returnkeys[j].key1 )&&((data+i+2)[0] == conf->returnkeys[j].key2)) {
-                                        return_key=j;
+                                    if (data[i + 1] == conf->returnkeys[j].key1
+                                     && data[i + 2] == conf->returnkeys[j].key2) {
+                                        return_key = j;
                                         break;
                                     }
                                 }
-                                if( return_key >= 0 )
+                                if (return_key >= 0)
 				{
 				    fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-20s = %.0f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
 				    inverter_serial = (unit.Serial[3]<<24) + (unit.Serial[2]<<16) + (unit.Serial[1]<<8) + (unit.Serial[0]);
                                 }
-                                else
-                                    if( (data+0)[0] > 0 )
-
-				        fmt::printf("%d-%02d-%02d %02d:%02d:%02d NO DATA for %02x %02x = %.0f NO UNITS\n", year, month, day, hour, minute, second, (data+i+1)[0], (data+i+1)[1], currentpower_total );
+                                else if (data[0] > 0)
+                                  fmt::printf("%d-%02d-%02d %02d:%02d:%02d NO DATA for %02x %02x = %.0f NO UNITS\n", year, month, day, hour, minute, second, data[i + 1], data[i + 2], currentpower_total);
 			    }
-                            free( data );
-			    break;
                         }
                         else
-                            //An Error has occurred
-                            break;
-
+                        {
+                          // An Error has occurred
+                        }
+                        break;
+                    }
 		    case 6: // extract total energy collected today
                          
 			gtotal = (received[69] * 65536) + (received[68] * 256) + received[67];
@@ -741,82 +740,82 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
 			break;
 
 		    case 17: // Test data
-                        if(( data = ReadStream(conf, flag,  &readRecord, s, received, &rr, &datalen, last_sent, cc, &terminated, &togo)) != NULL )
-                        {
-                            fmt::printf( "\n" );
-                        
-                            free( data );
-		            break;
-                        }
-                        else
-                           //An Error has occurred
-                            break;
-				
+                    {
+                      auto data = ReadStream(conf, flag,  &readRecord, s, received, &rr, last_sent, cc, &terminated, &togo);
+                      if (!data.empty())
+                      {
+                        fmt::print("\n");
+                      }
+                      else
+                      {
+                        // An Error has occurred
+                      }
+                      break;
+                    }
 		    case 18: // $ARCHIVEDATA1
                         finished=0;
                         ptotal=0;
                         idate=0;
                         fmt::printf( "\n" );
-                        while( finished != 1 ) {
-                            if(( data = ReadStream(conf, flag,  &readRecord, s, received, &rr, &datalen, last_sent, cc, &terminated, &togo)) != NULL )
-                            {
-                                j=0;
-                                for( i=0; i<datalen; i++ )
-                                {
-                                    datarecord[j]=data[i];
-                                    j++;
-                                    if( j > 11 ) {
-                                        if( idate > 0 ) prev_idate=idate;
-                                        else prev_idate=0;
-                                        idate=ConvertStreamtoTime( datarecord, 4, &idate, &day, &month, &year, &hour, &minute, &second  );
-                                        if( prev_idate == 0 )
-                                            prev_idate = idate-300;
+                        while( finished != 1 )
+                        {
+                          auto data = ReadStream(conf, flag,  &readRecord, s, received, &rr, last_sent, cc, &terminated, &togo);
+                          if (data.empty())
+                          {
+                            //An Error has occurred
+                            break;
+                          }
 
-                                        ConvertStreamtoFloat( datarecord+4, 8, &gtotal );
-                                        if (archdata.empty())
-                                            ptotal = gtotal;
-	                                    fmt::printf("\n%d/%d/%4d %02d:%02d:%02d  total=%.3f Kwh current=%.0f Watts togo=%d i=%d", day, month, year, hour, minute,second, gtotal/1000, (gtotal-ptotal)*12, togo, i);
-					    if( idate != prev_idate+300 ) {
-                                                fmt::printf( "Date Error! prev=%d current=%d\n", (int)prev_idate, (int)idate );
-					        break;
-                                            }
-                                            ArchDataType adata;
-					    adata.date          = idate;
-                                            strcpy(adata.inverter, unit.Inverter);
-				            adata.serial        = (unit.Serial[0] << 24) + (unit.Serial[1] << 16)
-                                                                + (unit.Serial[2] <<  8) + (unit.Serial[3] <<  0);
-                                            adata.accum_value   = gtotal / 1000;
-                                            adata.current_value = (gtotal - ptotal) * 12;
-                                            archdata.push_back(std::move(adata));
-                                            ptotal=gtotal;
-                                            j=0; //get ready for another record
-                                        }
-                                    }
-                                    if( togo == 0 ) 
-                                        finished=1;
-                                    else
-                                        if( read_bluetooth(conf, flag, &readRecord, s, &rr, received, cc, last_sent, &terminated) != 0 )
-                                        {
-                                            found=0;
-                                            /*
-                                            archdata.clear();
-                                            livedata.clear();
-                                            */
-                                            strcpy( lineread, "" );
-                                            sleep(10);
-                                            failedbluetooth++;
-                                            if( failedbluetooth > 3 )
-                                                exit(-1);
-                                        }
-                                    }
-                                    else
-                                        //An Error has occurred
-                                        break;
-				}
-                                free( data );
-                                fmt::printf( "\n" );
-                          
-				break;
+                          j=0;
+                          for (std::size_t i = 0; i < data.size(); ++i)
+                          {
+                            datarecord[j]=data[i];
+                            j++;
+                            if( j > 11 ) {
+                              if( idate > 0 ) prev_idate=idate;
+                              else prev_idate=0;
+                              idate=ConvertStreamtoTime( datarecord, 4, &idate, &day, &month, &year, &hour, &minute, &second  );
+                              if( prev_idate == 0 )
+                                prev_idate = idate-300;
+
+                              ConvertStreamtoFloat( datarecord+4, 8, &gtotal );
+                              if (archdata.empty())
+                                ptotal = gtotal;
+                              fmt::printf("\n%d/%d/%4d %02d:%02d:%02d  total=%.3f Kwh current=%.0f Watts togo=%d i=%d", day, month, year, hour, minute,second, gtotal/1000, (gtotal-ptotal)*12, togo, i);
+                              if( idate != prev_idate+300 ) {
+                                fmt::printf( "Date Error! prev=%d current=%d\n", (int)prev_idate, (int)idate );
+                                break;
+                              }
+                              ArchDataType adata;
+                              adata.date          = idate;
+                              strcpy(adata.inverter, unit.Inverter);
+                              adata.serial        = (unit.Serial[0] << 24) + (unit.Serial[1] << 16)
+                                + (unit.Serial[2] <<  8) + (unit.Serial[3] <<  0);
+                              adata.accum_value   = gtotal / 1000;
+                              adata.current_value = (gtotal - ptotal) * 12;
+                              archdata.push_back(std::move(adata));
+                              ptotal=gtotal;
+                              j=0; //get ready for another record
+                            }
+                          }
+                          if( togo == 0 ) 
+                            finished=1;
+                          else if( read_bluetooth(conf, flag, &readRecord, s, &rr, received, cc, last_sent, &terminated) != 0 )
+                          {
+                            found=0;
+                            /*
+                               archdata.clear();
+                               livedata.clear();
+                               */
+                            strcpy( lineread, "" );
+                            sleep(10);
+                            failedbluetooth++;
+                            if( failedbluetooth > 3 )
+                              exit(-1);
+                          }
+                        }
+                        fmt::printf( "\n" );
+                        break;
 			    case 20: // SIGNAL signal strength
                           
 				strength  = (received[22] * 100.0)/0xff;
@@ -835,172 +834,178 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
                                 
 				break;
 			    case 24: // Inverter data $INVERTERDATA
-                                if(( data = ReadStream(conf, flag,  &readRecord, s, received, &rr, &datalen, last_sent, cc, &terminated, &togo)) != NULL )
-                                {
-                                    if( flag->debug==1 ) fmt::printf( "data=%02x\n",(data+3)[0] );
-                                    int gap;
-                                    switch (data[3])
-                                    {
-                                        case 0x08: gap = 40; break;
-                                        case 0x10: gap = 40; break;
-                                        case 0x40: gap = 28; break;
-                                        case 0x00: gap = 28; break;
-                                        default:
-                                            abort();
-                                    }
-                                    for ( i = 0; i<datalen; i+=gap ) 
-                                    {
-                                       idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second  );
-                                       ConvertStreamtoFloat( data+i+8, 3, &currentpower_total );
-                                       return_key=-1;
-                                       for (unsigned int j = 0; j < conf->returnkeys.size(); j++)
-                                       {
-                                          if(( (data+i+1)[0] == conf->returnkeys[j].key1 )&&((data+i+2)[0] == conf->returnkeys[j].key2)) {
-                                              return_key=j;
-                                              break;
-                                          }
-                                       }
-                                       if( return_key >= 0 ) {
-                                           if( i==0 )
-				               fmt::printf("%d-%02d-%02d  %02d:%02d:%02d %s\n", year, month, day, hour, minute, second, (data+i+8) );
-				           fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-20s = %.0f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
-                                       }
-                                       else
-                                           if( data[0]>0 )
-				                fmt::printf("%d-%02d-%02d %02d:%02d:%02d NO DATA for %02x %02x = %.0f NO UNITS \n", year, month, day, hour, minute, second, (data+i+1)[0], (data+i+1)[0], currentpower_total );
-                                    }
-                                    free( data );
-				    break;
-                                }
-                                else
-                                    //An Error has occurred
-                                    break;
-			    case 28: // extract data $DATA
-                                if(( data = ReadStream(conf, flag, &readRecord, s, received, &rr, &datalen, last_sent, cc, &terminated, &togo)) != NULL )
-                                {
-                                    int gap = 0;
-                                    return_key=-1;
-                                    for (unsigned int j = 0; j < conf->returnkeys.size(); j++)
-                                    {
-                                       if(( (data+1)[0] == conf->returnkeys[j].key1 )&&((data+2)[0] == conf->returnkeys[j].key2)) {
-                                          return_key=j;
-                                          break;
-                                       }
-                                    }
-                                    if( return_key >= 0 ) {
-				        gap=conf->returnkeys[return_key].recordgap;
-                                        datalength=conf->returnkeys[return_key].datalength;
-                                    }
-                                    else
-                                        if( datalen > 0 )
-                                             fmt::printf( "\nFailed to find key %02x:%02x", (data+1)[0],(data+2)[0] );
-                                    
-                                    for ( i = 0; i<datalen; i+=gap ) 
-                                    {
-                                       idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second  );
-                                       return_key=-1;
-                                       for (unsigned int j = 0; j < conf->returnkeys.size(); j++)
-                                       {
-                                          if(( (data+i+1)[0] == conf->returnkeys[j].key1 )&&((data+i+2)[0] == conf->returnkeys[j].key2)) {
-                                              return_key=j;
-                                              break;
-                                          }
-                                       }
-                                       if( return_key >= 0 )
-				       {
-      				           switch( conf->returnkeys[return_key].decimal ) {
-					   case 0 :
-                                               ConvertStreamtoFloat( data+i+8, datalength, &currentpower_total );
-                                               if( currentpower_total == 0 )
-                                                   persistent=1;
-                                               else
-                                                   persistent = conf->returnkeys[return_key].persistent;
-		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.0f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
-                                               UpdateLiveList(flag, unit, "%.0f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
-					       break;
-        				   case 1 :
-                                               ConvertStreamtoFloat( data+i+8, datalength, &currentpower_total );
-                                               if( currentpower_total == 0 )
-                                                   persistent=1;
-                                               else
-                                                   persistent = conf->returnkeys[return_key].persistent;
-		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.1f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
-                                               UpdateLiveList(flag, unit, "%.1f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
-					       break;
-        				   case 2 :
-                                               ConvertStreamtoFloat( data+i+8, datalength, &currentpower_total );
-                                               if( currentpower_total == 0 )
-                                                   persistent=1;
-                                               else
-                                                   persistent = conf->returnkeys[return_key].persistent;
-		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.2f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
-                                               UpdateLiveList(flag, unit, "%.2f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
-					       break;
-        				   case 3 :
-                                               ConvertStreamtoFloat( data+i+8, datalength, &currentpower_total );
-                                               if( currentpower_total == 0 )
-                                                   persistent=1;
-                                               else
-                                                   persistent = conf->returnkeys[return_key].persistent;
-		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.3f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
-                                               UpdateLiveList(flag, unit, "%.3f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
-					       break;
-        				   case 4 :
-                                               ConvertStreamtoFloat( data+i+8, datalength, &currentpower_total );
-                                               if( currentpower_total == 0 )
-                                                   persistent=1;
-                                               else
-                                                   persistent = conf->returnkeys[return_key].persistent;
-		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.4f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
-                                               UpdateLiveList(flag, unit, "%.4f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
-					       break;
-                                           case 97 :
-                                           {
-                                               idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second  );
-		       			       fmt::printf("                    %-30s = %d-%02d-%02d %02d:%02d:%02d\n", conf->returnkeys[return_key].description, year, month, day, hour, minute, second );
-                                               auto valuebuf = fmt::sprintf("%d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second );
-                                               UpdateLiveList(flag, unit, "%s",  idate, conf->returnkeys[return_key].description, -1.0, -1, valuebuf.c_str(), conf->returnkeys[return_key].units, conf->returnkeys[return_key].persistent, livedata);
+                            {
+                              auto data = ReadStream(conf, flag,  &readRecord, s, received, &rr, last_sent, cc, &terminated, &togo);
+                              if (data.empty())
+                                // An error occurred
+                                break;
+                              if (flag->debug)
+                                fmt::printf("data=%02x\n", data.at(3));
+                              std::size_t gap;
+                              switch (data[3])
+                              {
+                                case 0x08: gap = 40; break;
+                                case 0x10: gap = 40; break;
+                                case 0x40: gap = 28; break;
+                                case 0x00: gap = 28; break;
+                                default:
+                                  abort();
+                              }
+                              for (std::size_t i = 0; i < data.size(); i += gap)
+                              {
+                                 idate = ConvertStreamtoTime(&data[i + 4], 4, &idate, &day, &month, &year, &hour, &minute, &second);
+                                 ConvertStreamtoFloat(&data[i + 8], 3, &currentpower_total );
+                                 return_key=-1;
+                                 for (unsigned int j = 0; j < conf->returnkeys.size(); j++)
+                                 {
+                                   if (data[i + 1] == conf->returnkeys[j].key1
+                                    && data[i + 2] == conf->returnkeys[j].key2)
+                                   {
+                                     return_key = j;
+                                     break;
+                                   }
+                                 }
+                                 if (return_key >= 0)
+                                 {
+                                   if (i == 0)
+                                     fmt::printf("%d-%02d-%02d  %02d:%02d:%02d %s\n", year, month, day, hour, minute, second, &data[i + 8]);
+                                   fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-20s = %.0f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
+                                 }
+                                 else if (data[0] > 0)
+                                   fmt::printf("%d-%02d-%02d %02d:%02d:%02d NO DATA for %02x %02x = %.0f NO UNITS \n", year, month, day, hour, minute, second, data[i + 1], data[i + 2], currentpower_total );
+                              }
+                              break;
+                            }
+                    case 28: // extract data $DATA
+                    {
+                      auto data = ReadStream(conf, flag, &readRecord, s, received, &rr, last_sent, cc, &terminated, &togo);
+                      if (data.empty())
+                      {
+                        // An Error has occurred
+                        break;
+                      }
 
-                                               break;
-                                           }
-        				   case 98 :
-                                           {
-                                               idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second  );
-                                               ConvertStreamtoInt( data+i+8, 2, &index );
-                                               auto datastring = return_sma_description(index);
-		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %s %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, datastring, conf->returnkeys[return_key].units );
-                                               UpdateLiveList(flag, unit, "%s",  idate, conf->returnkeys[return_key].description, -1.0, -1, datastring, conf->returnkeys[return_key].units, conf->returnkeys[return_key].persistent, livedata);
-                                               if( (data+i+1)[0]==0x20 && (data+i+2)[0] == 0x82 ) {
-                                                    strcpy(unit.Inverter, datastring);
-                                               }
-					       break;
-                                           }
-        				   case 99 :
-                                           {
-                                               idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second  );
-                                               auto datastring = ConvertStreamtoString( data+i+8, datalength );
-		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %s %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, datastring, conf->returnkeys[return_key].units );
-                                               UpdateLiveList(flag, unit, "%s",  idate, conf->returnkeys[return_key].description, -1.0, -1, datastring.c_str(), conf->returnkeys[return_key].units, conf->returnkeys[return_key].persistent, livedata);
-                                               
-					       break;
-                                           }
-      				           }
-                                       }
-                                       else
-                                       {
-                                           if( data[0]>0 )
-				               fmt::printf("%d-%02d-%02d %02d:%02d:%02d NO DATA for %02x %02x = %.0f NO UNITS\n", year, month, day, hour, minute, second, (data+i+1)[0], (data+i+1)[1], currentpower_total );
-                                           break;
-                                       }
-                                    }
-                                    free( data );
-				    break;
-                                }
-                                else
-                                {
-                                    //An Error has occurred
-                                    break;
-				}
+                      std::size_t gap = 0;
+                      return_key=-1;
+                      for (unsigned int j = 0; j < conf->returnkeys.size(); j++)
+                      {
+                        if (data[1] == conf->returnkeys[j].key1
+                            && data[2] == conf->returnkeys[j].key2)
+                        {
+                          return_key=j;
+                          break;
+                        }
+                      }
+                      int datalength = 0;
+                      if (return_key >= 0) {
+                        gap=conf->returnkeys[return_key].recordgap;
+                        datalength = conf->returnkeys[return_key].datalength;
+                      }
+                      else if (!data.empty())
+                        fmt::printf( "\nFailed to find key %02x:%02x", data[1], data[2]);
+
+                      for (std::size_t i = 0; i < data.size(); i += gap)
+                      {
+                        idate = ConvertStreamtoTime(&data[i + 4], 4, &idate, &day, &month, &year, &hour, &minute, &second);
+                        return_key=-1;
+                        for (unsigned int j = 0; j < conf->returnkeys.size(); j++)
+                        {
+                          if (data[i + 1] == conf->returnkeys[j].key1
+                           && data[i + 2] == conf->returnkeys[j].key2)
+                          {
+                            return_key=j;
+                            break;
+                          }
+                        }
+                        if (return_key < 0)
+                        {
+                          if (data[0] > 0)
+                            fmt::printf("%d-%02d-%02d %02d:%02d:%02d NO DATA for %02x %02x = %.0f NO UNITS\n", year, month, day, hour, minute, second, data[i + 1], data[i + 2], currentpower_total );
+                          break;
+                        }
+                        switch (conf->returnkeys[return_key].decimal)
+                        {
+                          case 0 :
+                            ConvertStreamtoFloat(&data[i + 8], datalength, &currentpower_total );
+                            if( currentpower_total == 0 )
+                              persistent=1;
+                            else
+                              persistent = conf->returnkeys[return_key].persistent;
+                            fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.0f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
+                            UpdateLiveList(flag, unit, "%.0f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
+                            break;
+                          case 1 :
+                            ConvertStreamtoFloat(&data[i + 8], datalength, &currentpower_total );
+                            if( currentpower_total == 0 )
+                              persistent=1;
+                            else
+                              persistent = conf->returnkeys[return_key].persistent;
+                            fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.1f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
+                            UpdateLiveList(flag, unit, "%.1f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
+                            break;
+                          case 2 :
+                            ConvertStreamtoFloat(&data[i + 8], datalength, &currentpower_total );
+                            if( currentpower_total == 0 )
+                              persistent=1;
+                            else
+                              persistent = conf->returnkeys[return_key].persistent;
+                            fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.2f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
+                            UpdateLiveList(flag, unit, "%.2f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
+                            break;
+                          case 3 :
+                            ConvertStreamtoFloat(&data[i + 8], datalength, &currentpower_total );
+                            if( currentpower_total == 0 )
+                              persistent=1;
+                            else
+                              persistent = conf->returnkeys[return_key].persistent;
+                            fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.3f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
+                            UpdateLiveList(flag, unit, "%.3f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
+                            break;
+                          case 4 :
+                            ConvertStreamtoFloat(&data[i + 8], datalength, &currentpower_total );
+                            if( currentpower_total == 0 )
+                              persistent=1;
+                            else
+                              persistent = conf->returnkeys[return_key].persistent;
+                            fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.4f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
+                            UpdateLiveList(flag, unit, "%.4f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
+                            break;
+                          case 97 :
+                            {
+                              idate=ConvertStreamtoTime(&data[i + 4], 4, &idate, &day, &month, &year, &hour, &minute, &second  );
+                              fmt::printf("                    %-30s = %d-%02d-%02d %02d:%02d:%02d\n", conf->returnkeys[return_key].description, year, month, day, hour, minute, second );
+                              auto valuebuf = fmt::sprintf("%d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second );
+                              UpdateLiveList(flag, unit, "%s",  idate, conf->returnkeys[return_key].description, -1.0, -1, valuebuf.c_str(), conf->returnkeys[return_key].units, conf->returnkeys[return_key].persistent, livedata);
+
+                              break;
+                            }
+                          case 98 :
+                            {
+                              idate=ConvertStreamtoTime(&data[i + 4], 4, &idate, &day, &month, &year, &hour, &minute, &second  );
+                              ConvertStreamtoInt(&data[i + 8], 2, &index );
+                              auto datastring = return_sma_description(index);
+                              fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %s %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, datastring, conf->returnkeys[return_key].units );
+                              UpdateLiveList(flag, unit, "%s",  idate, conf->returnkeys[return_key].description, -1.0, -1, datastring, conf->returnkeys[return_key].units, conf->returnkeys[return_key].persistent, livedata);
+                              if (data[i + 1] == 0x20
+                               && data[i + 2] == 0x82)
+                              {
+                                strcpy(unit.Inverter, datastring);
+                              }
+                              break;
+                            }
+                          case 99 :
+                            {
+                              idate=ConvertStreamtoTime(&data[i + 4], 4, &idate, &day, &month, &year, &hour, &minute, &second  );
+                              auto datastring = ConvertStreamtoString(&data[i + 8], datalength);
+                              fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %s %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, datastring, conf->returnkeys[return_key].units );
+                              UpdateLiveList(flag, unit, "%s",  idate, conf->returnkeys[return_key].description, -1.0, -1, datastring.c_str(), conf->returnkeys[return_key].units, conf->returnkeys[return_key].persistent, livedata);
+
+                              break;
+                            }
+                        }
+                      }
+                      break;
+                    }
 			    case 31: // LOGIN Data
                                 idate=ConvertStreamtoTime( received+59, 4, &idate, &day, &month, &year, &hour, &minute, &second );
                                 if( flag->debug == 1) fmt::printf("Date power = %d/%d/%4d %02d:%02d:%02d\n",day, month, year, hour, minute,second);
