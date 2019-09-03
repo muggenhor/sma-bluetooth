@@ -18,6 +18,7 @@
 #pragma once
 
 #include <time.h>
+#include <vector>
 
 #define DATELENGTH 20
 
@@ -62,8 +63,7 @@ typedef struct{
     unsigned int MySerial[4];   /*Serial  of this app*/
     unsigned int MyBTAddress[6];   /*Serial  of this app*/
     unsigned int NetID;         /* Network ID of Inverter*/
-    ReturnType *returnkeylist;  /* pointer to return key list */
-    unsigned int num_return_keys;   /* number of items in list */
+    std::vector<ReturnType> returnkeys;  /* pointer to return key list */
     char datefrom[DATELENGTH];  /* is system using a daterange */
     char dateto[DATELENGTH];     /* is system using a daterange */
 } ConfType;

@@ -657,16 +657,16 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                 idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second );
                                 ConvertStreamtoFloat( data+i+8, 3, &currentpower_total );
                                 return_key=-1;
-                                for (unsigned int j = 0; j < conf->num_return_keys; j++)
+                                for (unsigned int j = 0; j < conf->returnkeys.size(); j++)
                                 {
-                                    if(( (data+i+1)[0] == conf->returnkeylist[j].key1 )&&((data+i+2)[0] == conf->returnkeylist[j].key2)) {
+                                    if(( (data+i+1)[0] == conf->returnkeys[j].key1 )&&((data+i+2)[0] == conf->returnkeys[j].key2)) {
                                         return_key=j;
                                         break;
                                     }
                                 }
                                 if( return_key >= 0 )
 				{
-				    fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-20s = %.0f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
+				    fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-20s = %.0f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
 				    inverter_serial = (unit[0]->Serial[3]<<24) + (unit[0]->Serial[2]<<16) + (unit[0]->Serial[1]<<8) + (unit[0]->Serial[0]);
                                 }
                                 else
@@ -853,9 +853,9 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                        idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second  );
                                        ConvertStreamtoFloat( data+i+8, 3, &currentpower_total );
                                        return_key=-1;
-                                       for (unsigned int j = 0; j < conf->num_return_keys; j++)
+                                       for (unsigned int j = 0; j < conf->returnkeys.size(); j++)
                                        {
-                                          if(( (data+i+1)[0] == conf->returnkeylist[j].key1 )&&((data+i+2)[0] == conf->returnkeylist[j].key2)) {
+                                          if(( (data+i+1)[0] == conf->returnkeys[j].key1 )&&((data+i+2)[0] == conf->returnkeys[j].key2)) {
                                               return_key=j;
                                               break;
                                           }
@@ -863,7 +863,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                        if( return_key >= 0 ) {
                                            if( i==0 )
 				               fmt::printf("%d-%02d-%02d  %02d:%02d:%02d %s\n", year, month, day, hour, minute, second, (data+i+8) );
-				           fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-20s = %.0f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
+				           fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-20s = %.0f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
                                        }
                                        else
                                            if( data[0]>0 )
@@ -880,16 +880,16 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                 {
                                     int gap = 0;
                                     return_key=-1;
-                                    for (unsigned int j = 0; j < conf->num_return_keys; j++)
+                                    for (unsigned int j = 0; j < conf->returnkeys.size(); j++)
                                     {
-                                       if(( (data+1)[0] == conf->returnkeylist[j].key1 )&&((data+2)[0] == conf->returnkeylist[j].key2)) {
+                                       if(( (data+1)[0] == conf->returnkeys[j].key1 )&&((data+2)[0] == conf->returnkeys[j].key2)) {
                                           return_key=j;
                                           break;
                                        }
                                     }
                                     if( return_key >= 0 ) {
-				        gap=conf->returnkeylist[return_key].recordgap;
-                                        datalength=conf->returnkeylist[return_key].datalength;
+				        gap=conf->returnkeys[return_key].recordgap;
+                                        datalength=conf->returnkeys[return_key].datalength;
                                     }
                                     else
                                         if( datalen > 0 )
@@ -899,67 +899,67 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                     {
                                        idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second  );
                                        return_key=-1;
-                                       for (unsigned int j = 0; j < conf->num_return_keys; j++)
+                                       for (unsigned int j = 0; j < conf->returnkeys.size(); j++)
                                        {
-                                          if(( (data+i+1)[0] == conf->returnkeylist[j].key1 )&&((data+i+2)[0] == conf->returnkeylist[j].key2)) {
+                                          if(( (data+i+1)[0] == conf->returnkeys[j].key1 )&&((data+i+2)[0] == conf->returnkeys[j].key2)) {
                                               return_key=j;
                                               break;
                                           }
                                        }
                                        if( return_key >= 0 )
 				       {
-      				           switch( conf->returnkeylist[return_key].decimal ) {
+      				           switch( conf->returnkeys[return_key].decimal ) {
 					   case 0 :
                                                ConvertStreamtoFloat( data+i+8, datalength, &currentpower_total );
                                                if( currentpower_total == 0 )
                                                    persistent=1;
                                                else
-                                                   persistent = conf->returnkeylist[return_key].persistent;
-		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.0f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
-                                               UpdateLiveList(flag, unit[0], "%.0f",  idate, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, -1, (char *)NULL, conf->returnkeylist[return_key].units, persistent, livedata);
+                                                   persistent = conf->returnkeys[return_key].persistent;
+		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.0f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
+                                               UpdateLiveList(flag, unit[0], "%.0f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
 					       break;
         				   case 1 :
                                                ConvertStreamtoFloat( data+i+8, datalength, &currentpower_total );
                                                if( currentpower_total == 0 )
                                                    persistent=1;
                                                else
-                                                   persistent = conf->returnkeylist[return_key].persistent;
-		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.1f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
-                                               UpdateLiveList(flag, unit[0], "%.1f",  idate, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, -1, (char *)NULL, conf->returnkeylist[return_key].units, persistent, livedata);
+                                                   persistent = conf->returnkeys[return_key].persistent;
+		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.1f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
+                                               UpdateLiveList(flag, unit[0], "%.1f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
 					       break;
         				   case 2 :
                                                ConvertStreamtoFloat( data+i+8, datalength, &currentpower_total );
                                                if( currentpower_total == 0 )
                                                    persistent=1;
                                                else
-                                                   persistent = conf->returnkeylist[return_key].persistent;
-		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.2f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
-                                               UpdateLiveList(flag, unit[0], "%.2f",  idate, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, -1, (char *)NULL, conf->returnkeylist[return_key].units, persistent, livedata);
+                                                   persistent = conf->returnkeys[return_key].persistent;
+		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.2f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
+                                               UpdateLiveList(flag, unit[0], "%.2f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
 					       break;
         				   case 3 :
                                                ConvertStreamtoFloat( data+i+8, datalength, &currentpower_total );
                                                if( currentpower_total == 0 )
                                                    persistent=1;
                                                else
-                                                   persistent = conf->returnkeylist[return_key].persistent;
-		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.3f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
-                                               UpdateLiveList(flag, unit[0], "%.3f",  idate, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, -1, (char *)NULL, conf->returnkeylist[return_key].units, persistent, livedata);
+                                                   persistent = conf->returnkeys[return_key].persistent;
+		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.3f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
+                                               UpdateLiveList(flag, unit[0], "%.3f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
 					       break;
         				   case 4 :
                                                ConvertStreamtoFloat( data+i+8, datalength, &currentpower_total );
                                                if( currentpower_total == 0 )
                                                    persistent=1;
                                                else
-                                                   persistent = conf->returnkeylist[return_key].persistent;
-		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.4f %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, conf->returnkeylist[return_key].units );
-                                               UpdateLiveList(flag, unit[0], "%.4f",  idate, conf->returnkeylist[return_key].description, currentpower_total/conf->returnkeylist[return_key].divisor, -1, (char *)NULL, conf->returnkeylist[return_key].units, persistent, livedata);
+                                                   persistent = conf->returnkeys[return_key].persistent;
+		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.4f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
+                                               UpdateLiveList(flag, unit[0], "%.4f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
 					       break;
                                            case 97 :
                                            {
                                                idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second  );
-		       			       fmt::printf("                    %-30s = %d-%02d-%02d %02d:%02d:%02d\n", conf->returnkeylist[return_key].description, year, month, day, hour, minute, second );
+		       			       fmt::printf("                    %-30s = %d-%02d-%02d %02d:%02d:%02d\n", conf->returnkeys[return_key].description, year, month, day, hour, minute, second );
                                                auto valuebuf = fmt::sprintf("%d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second );
-                                               UpdateLiveList(flag, unit[0], "%s",  idate, conf->returnkeylist[return_key].description, -1.0, -1, valuebuf.c_str(), conf->returnkeylist[return_key].units, conf->returnkeylist[return_key].persistent, livedata);
+                                               UpdateLiveList(flag, unit[0], "%s",  idate, conf->returnkeys[return_key].description, -1.0, -1, valuebuf.c_str(), conf->returnkeys[return_key].units, conf->returnkeys[return_key].persistent, livedata);
 
                                                break;
                                            }
@@ -968,8 +968,8 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                                idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second  );
                                                ConvertStreamtoInt( data+i+8, 2, &index );
                                                auto datastring = return_sma_description(index);
-		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %s %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, datastring, conf->returnkeylist[return_key].units );
-                                               UpdateLiveList(flag, unit[0], "%s",  idate, conf->returnkeylist[return_key].description, -1.0, -1, datastring, conf->returnkeylist[return_key].units, conf->returnkeylist[return_key].persistent, livedata);
+		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %s %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, datastring, conf->returnkeys[return_key].units );
+                                               UpdateLiveList(flag, unit[0], "%s",  idate, conf->returnkeys[return_key].description, -1.0, -1, datastring, conf->returnkeys[return_key].units, conf->returnkeys[return_key].persistent, livedata);
                                                if( (data+i+1)[0]==0x20 && (data+i+2)[0] == 0x82 ) {
                                                     strcpy(unit[0]->Inverter, datastring);
                                                }
@@ -979,8 +979,8 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                            {
                                                idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second  );
                                                auto datastring = ConvertStreamtoString( data+i+8, datalength );
-		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %s %-20s\n", year, month, day, hour, minute, second, conf->returnkeylist[return_key].description, datastring, conf->returnkeylist[return_key].units );
-                                               UpdateLiveList(flag, unit[0], "%s",  idate, conf->returnkeylist[return_key].description, -1.0, -1, datastring.c_str(), conf->returnkeylist[return_key].units, conf->returnkeylist[return_key].persistent, livedata);
+		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %s %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, datastring, conf->returnkeys[return_key].units );
+                                               UpdateLiveList(flag, unit[0], "%s",  idate, conf->returnkeys[return_key].description, -1.0, -1, datastring.c_str(), conf->returnkeys[return_key].units, conf->returnkeys[return_key].persistent, livedata);
                                                
 					       break;
                                            }

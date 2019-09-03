@@ -952,14 +952,12 @@ std::string ConvertStreamtoString(unsigned char * stream, int length )
    return value;
 }
 //read return value data from init file
-ReturnType * 
-InitReturnKeys( ConfType * conf )
+static std::vector<ReturnType> InitReturnKeys(ConfType * conf)
 {
    FILE		*fp;
    char		line[400];
    ReturnType   tmp;
-   ReturnType   *returnkeylist = NULL;
-   int		num_return_keys=0;
+   std::vector<ReturnType> returnkeys;
    int		data_follows;
 
    data_follows = 0;
@@ -991,21 +989,17 @@ InitReturnKeys( ConfType * conf )
                     tmp.recordgap=0;
                     tmp.persistent=1;
                     if( sscanf( line, "%x %x \"%[^\"]\" \"%[^\"]\" %d %d %d %d", &tmp.key1, &tmp.key2, tmp.description, tmp.units, &tmp.decimal, &tmp.recordgap, &tmp.datalength, &tmp.persistent ) == 8 ) {
-                              
-                        if( (num_return_keys) == 0 )
-                            returnkeylist=(ReturnType *)malloc(sizeof(ReturnType));
-                        else
-                            returnkeylist=(ReturnType *)realloc(returnkeylist,sizeof(ReturnType)*((num_return_keys)+1));
-                        (returnkeylist+(num_return_keys))->key1=tmp.key1;
-                        (returnkeylist+(num_return_keys))->key2=tmp.key2;
-                        strcpy( (returnkeylist+(num_return_keys))->description, tmp.description );
-                        strcpy( (returnkeylist+(num_return_keys))->units, tmp.units );
-                        (returnkeylist+(num_return_keys))->decimal = tmp.decimal;
-                        (returnkeylist+(num_return_keys))->divisor = (float)pow( 10, tmp.decimal );
-                        (returnkeylist+(num_return_keys))->datalength = tmp.datalength;
-                        (returnkeylist+(num_return_keys))->recordgap = tmp.recordgap;
-                        (returnkeylist+(num_return_keys))->persistent = tmp.persistent;
-                        (num_return_keys)++;
+                      ReturnType returnkey;
+                      returnkey.key1=tmp.key1;
+                      returnkey.key2=tmp.key2;
+                      strcpy( returnkey.description, tmp.description );
+                      strcpy( returnkey.units, tmp.units );
+                      returnkey.decimal = tmp.decimal;
+                      returnkey.divisor = (float)pow( 10, tmp.decimal );
+                      returnkey.datalength = tmp.datalength;
+                      returnkey.recordgap = tmp.recordgap;
+                      returnkey.persistent = tmp.persistent;
+                      returnkeys.push_back(std::move(returnkey));
                     }
                     else
                     {
@@ -1020,9 +1014,7 @@ InitReturnKeys( ConfType * conf )
       }
    fclose(fp);
    }
-   conf->num_return_keys=num_return_keys;
-   conf->returnkeylist=returnkeylist;
-   return returnkeylist;
+   return returnkeys;
 }
 
 //Convert a recieved string to a value
@@ -1431,7 +1423,7 @@ int main(int argc, char **argv)
     // set switches used through the program
     SetSwitches( &conf, &flag );  
     // Get Return Value lookup from file
-    InitReturnKeys( &conf );
+    conf.returnkeys = InitReturnKeys(&conf);
     // Set value for inverter type
     
     SetInverterType( &conf, &unit );
