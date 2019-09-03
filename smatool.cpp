@@ -1403,8 +1403,7 @@ int main(int argc, char **argv)
     int 		maximumUnits=1;
     UnitType 		*unit;
     unsigned char 	tzhex[2] = { 0 };
-    int			archdatalen=0;
-    ArchDataType 	*archdatalist=NULL;
+    std::vector<ArchDataType> archdata;
     std::vector<LiveDataType> livedata;
 
     unit=(UnitType *)malloc( sizeof(UnitType) * maximumUnits);
@@ -1460,40 +1459,41 @@ int main(int argc, char **argv)
     dest_address[0] = conv(strtok(NULL,":"));
 */
 
-    OpenInverter(&conf, &flag, &unit, s, &archdatalist, &archdatalen, livedata);
-    InverterCommand("login",               &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
-    InverterCommand("typelabel",           &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
-    InverterCommand("typelabel",           &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
-    InverterCommand("startuptime",         &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
-    InverterCommand("getacvoltage",        &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
-    InverterCommand("getenergyproduction", &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
-    InverterCommand("getspotdcpower",      &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
-    InverterCommand("getspotdcvoltage",    &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
-    InverterCommand("getspotacpower",      &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
-    InverterCommand("getgridfreq",         &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
-    InverterCommand("maxACPower",          &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
-    InverterCommand("maxACPowerTotal",     &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
-    InverterCommand("ACPowerTotal",        &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
-    InverterCommand("DeviceStatus",        &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
+    OpenInverter(&conf, &flag, &unit, s, archdata, livedata);
+    InverterCommand("login",               &conf, &flag, &unit, s, fp, archdata, livedata);
+    InverterCommand("typelabel",           &conf, &flag, &unit, s, fp, archdata, livedata);
+    InverterCommand("typelabel",           &conf, &flag, &unit, s, fp, archdata, livedata);
+    InverterCommand("startuptime",         &conf, &flag, &unit, s, fp, archdata, livedata);
+    InverterCommand("getacvoltage",        &conf, &flag, &unit, s, fp, archdata, livedata);
+    InverterCommand("getenergyproduction", &conf, &flag, &unit, s, fp, archdata, livedata);
+    InverterCommand("getspotdcpower",      &conf, &flag, &unit, s, fp, archdata, livedata);
+    InverterCommand("getspotdcvoltage",    &conf, &flag, &unit, s, fp, archdata, livedata);
+    InverterCommand("getspotacpower",      &conf, &flag, &unit, s, fp, archdata, livedata);
+    InverterCommand("getgridfreq",         &conf, &flag, &unit, s, fp, archdata, livedata);
+    InverterCommand("maxACPower",          &conf, &flag, &unit, s, fp, archdata, livedata);
+    InverterCommand("maxACPowerTotal",     &conf, &flag, &unit, s, fp, archdata, livedata);
+    InverterCommand("ACPowerTotal",        &conf, &flag, &unit, s, fp, archdata, livedata);
+    InverterCommand("DeviceStatus",        &conf, &flag, &unit, s, fp, archdata, livedata);
     if (flag.daterange)
-      InverterCommand("getrangedata",        &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
-    InverterCommand("logoff",              &conf, &flag, &unit, s, fp, &archdatalist, &archdatalen, livedata);
+      InverterCommand("getrangedata",        &conf, &flag, &unit, s, fp, archdata, livedata);
+    InverterCommand("logoff",              &conf, &flag, &unit, s, fp, archdata, livedata);
 
     close(s);
 
 #if 0
     if (flag.debug == 1)
     {
-      for (int i = 1; i < archdatalen; ++i) // Start at 1 as the first record is a dummy
+      bool first = true;
+      for (const auto& data : archdata)
       {
-        fmt::printf("INSERT INTO DayData ( DateTime, Inverter, Serial, CurrentPower, EtotalToday ) VALUES ( FROM_UNIXTIME(%ld),\'%s\',%llu,%0.f, %.3f ) ON DUPLICATE KEY UPDATE DateTime=Datetime, Inverter=VALUES(Inverter), Serial=VALUES(Serial), CurrentPower=VALUES(CurrentPower), EtotalToday=VALUES(EtotalToday)\n",(archdatalist+i)->date, (archdatalist+i)->inverter, (archdatalist+i)->serial, (archdatalist+i)->current_value, (archdatalist+i)->accum_value);
+        if (first)
+        {
+          // Skip first record as it's a dummy
+          first = false;
+          continue;
+        }
+        fmt::printf("INSERT INTO DayData ( DateTime, Inverter, Serial, CurrentPower, EtotalToday ) VALUES ( FROM_UNIXTIME(%ld),\'%s\',%llu,%0.f, %.3f ) ON DUPLICATE KEY UPDATE DateTime=Datetime, Inverter=VALUES(Inverter), Serial=VALUES(Serial), CurrentPower=VALUES(CurrentPower), EtotalToday=VALUES(EtotalToday)\n", data.date, data.inverter, data.serial, data.current_value, data.accum_value);
       }
     }
 #endif
-
-    if( archdatalen > 0 )
-        free( archdatalist );
-    archdatalen=0;
-
-return 0;
 }

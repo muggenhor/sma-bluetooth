@@ -82,7 +82,7 @@ static int UpdateLiveList(const FlagType* flag, const UnitType* unit, const char
 }
 
 static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit, const int s, FILE* fp, int* linenum,
-                          ArchDataType** archdatalist, int* archdatalen, std::vector<LiveDataType>& livedata)
+                          std::vector<ArchDataType>& archdata, std::vector<LiveDataType>& livedata)
 {
    char  *line;
    size_t len=0;
@@ -773,24 +773,21 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                             prev_idate = idate-300;
 
                                         ConvertStreamtoFloat( datarecord+4, 8, &gtotal );
-                                        if((*archdatalen) == 0 )
+                                        if (archdata.empty())
                                             ptotal = gtotal;
 	                                    fmt::printf("\n%d/%d/%4d %02d:%02d:%02d  total=%.3f Kwh current=%.0f Watts togo=%d i=%d", day, month, year, hour, minute,second, gtotal/1000, (gtotal-ptotal)*12, togo, i);
 					    if( idate != prev_idate+300 ) {
                                                 fmt::printf( "Date Error! prev=%d current=%d\n", (int)prev_idate, (int)idate );
 					        break;
                                             }
-                                            if( (*archdatalen) == 0 )
-                                                (*archdatalist) = ( ArchDataType *)malloc( sizeof( ArchDataType ) );
-                                            else
-                                                (*archdatalist) = ( ArchDataType *)realloc( (*archdatalist), sizeof( ArchDataType )*((*archdatalen)+1));
-					    ((*archdatalist)+(*archdatalen))->date=idate;
-                                            strcpy(((*archdatalist)+(*archdatalen))->inverter,unit[0]->Inverter);
-				            inverter_serial=(unit[0]->Serial[0]<<24)+(unit[0]->Serial[1]<<16)+(unit[0]->Serial[2]<<8)+unit[0]->Serial[3];
-				            ((*archdatalist)+(*archdatalen))->serial=inverter_serial;
-                                            ((*archdatalist)+(*archdatalen))->accum_value=gtotal/1000;
-                                            ((*archdatalist)+(*archdatalen))->current_value=(gtotal-ptotal)*12;
-                                            (*archdatalen)++;
+                                            ArchDataType adata;
+					    adata.date          = idate;
+                                            strcpy(adata.inverter, unit[0]->Inverter);
+				            adata.serial        = (unit[0]->Serial[0] << 24) + (unit[0]->Serial[1] << 16)
+                                                                + (unit[0]->Serial[2] <<  8) + (unit[0]->Serial[3] <<  0);
+                                            adata.accum_value   = gtotal / 1000;
+                                            adata.current_value = (gtotal - ptotal) * 12;
+                                            archdata.push_back(std::move(adata));
                                             ptotal=gtotal;
                                             j=0; //get ready for another record
                                         }
@@ -802,9 +799,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                         {
                                             found=0;
                                             /*
-                                            if( (*archdatalen) > 0 )
-                                                free( archdatalist );
-                                            (*archdatalen)=0;
+                                            archdata.clear();
                                             livedata.clear();
                                             */
                                             strcpy( lineread, "" );
@@ -1046,14 +1041,14 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
  *
  */
 void InverterCommand(const char* command, ConfType* conf, const FlagType* flag, UnitType** unit, const int s, FILE* fp,
-                     ArchDataType** archdatalist, int* archdatalen, std::vector<LiveDataType>& livedata)
+                     std::vector<ArchDataType>& archdata, std::vector<LiveDataType>& livedata)
 {
     int linenum;
 
     if (fseek( fp, 0L, 0 ) < 0 )
         fmt::printf( "\nError" );
     if(( linenum = GetLine( command, fp )) > 0 ) {
-        if (ProcessCommand(conf, flag, unit, s, fp, &linenum, archdatalist, archdatalen, livedata) < 0) {
+        if (ProcessCommand(conf, flag, unit, s, fp, &linenum, archdata, livedata) < 0) {
             fmt::printf( "\nError need to do something" ); getchar();
         }
     }
@@ -1064,8 +1059,8 @@ void InverterCommand(const char* command, ConfType* conf, const FlagType* flag, 
     }    
 }
 
-int OpenInverter(ConfType* conf, const FlagType* flag, UnitType** unit, const int s, ArchDataType** archdatalist,
-                 int* archdatalen, std::vector<LiveDataType>& livedata)
+int OpenInverter(ConfType* conf, const FlagType* flag, UnitType** unit, const int s, std::vector<ArchDataType>& archdata,
+                 std::vector<LiveDataType>& livedata)
 {
     FILE * fp;
 
@@ -1078,7 +1073,7 @@ int OpenInverter(ConfType* conf, const FlagType* flag, UnitType** unit, const in
         perror( "Can't open conf file" );
         return -1;
     }
-    InverterCommand("init", conf, flag, unit, s, fp, archdatalist, archdatalen, livedata);
+    InverterCommand("init", conf, flag, unit, s, fp, archdata, livedata);
 
     fclose(fp);
     return 0;

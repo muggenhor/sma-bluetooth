@@ -4,7 +4,7 @@
 #include <vector>
 
 extern int ConnectSocket(const ConfType* conf);
-extern int OpenInverter(ConfType* conf, const FlagType* flag, UnitType** unit, const int s, ArchDataType** archdatalist,
-                        int* archdatalen, std::vector<LiveDataType>& livedata);
+extern int OpenInverter(ConfType* conf, const FlagType* flag, UnitType** unit, const int s, std::vector<ArchDataType>& archdata,
+                        std::vector<LiveDataType>& livedata);
 extern void InverterCommand(const char* command, ConfType* conf, const FlagType* flag, UnitType** unit, const int s,
-                            FILE* fp, ArchDataType** archdatalist, int* archdatalen, std::vector<LiveDataType>& livedata);
+                            FILE* fp, std::vector<ArchDataType>& archdata, std::vector<LiveDataType>& livedata);
