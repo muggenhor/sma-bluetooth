@@ -107,7 +107,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
    unsigned char timestr[25] = { 0 };
    ReadRecordType readRecord;
    char  *lineread;
-   unsigned char * last_sent;
+   std::vector<unsigned char> last_sent;
    char	BTAddressBuf[20];
    char tt[10] = {48,48,48,48,48,48,48,48,48,48}; 
    char ti[3];	
@@ -136,11 +136,6 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
 
     while (( read = getline(&line,&len,fp) ) != -1){	//read line from sma.in
    	(*linenum)++;
-   	last_sent = (unsigned  char *)malloc( sizeof( unsigned char ));
-   	if ( last_sent == NULL ) {
-       	    fmt::printf( "\nOut of memory\n" );
-            return( -1 );
-   	}
    	lineread = strtok(line," ;");
    	if( lineread[0] == ':'){		//See if line is something we need to receive
        	    if( flag->debug == 1 ) fmt::printf( "\nCommand line we have finished%s\n", line ); 
@@ -195,7 +190,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
 	do {
             if( already_read == 0 )
                 rr=0;
-            if(( already_read == 0 )&& read_bluetooth(conf, flag, &readRecord, s, &rr, received, cc, last_sent, &terminated) != 0)
+            if(( already_read == 0 )&& read_bluetooth(conf, flag, &readRecord, s, &rr, received, last_sent, &terminated) != 0)
             {
                 already_read=0;
                 found=0;
@@ -606,8 +601,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
              fmt::printf(" rr=%d",(cc+3));
 	     fmt::printf("\n\n");
         }
-        last_sent = (unsigned  char *)realloc( last_sent, sizeof( unsigned char )*(cc));
-        memcpy(last_sent,fl,cc);
+        last_sent.assign(fl, fl + cc);
         write(s, fl, cc);
         already_read=0;
        //check_send_error( &conf, &s, &rr, received, cc, last_sent, &terminated, &already_read ); 
@@ -618,7 +612,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
         if( readRecord.Status[0]==0xe0 ) {
 	    if (flag->debug	== 1) fmt::printf("\nThere is no data currently available %s\n", debugdate());
                 // Read the rest of the records
-                while( read_bluetooth(conf, flag, &readRecord, s, &rr, received, cc, last_sent, &terminated) == 0 );
+                while( read_bluetooth(conf, flag, &readRecord, s, &rr, received, last_sent, &terminated) == 0 );
 
             }
             else
@@ -638,7 +632,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
 			break;
 		    case 5: // extract current power $POW
                     {
-                        auto data = ReadStream(conf, flag, &readRecord, s, received, &rr, last_sent, cc, &terminated, &togo);
+                        auto data = ReadStream(conf, flag, &readRecord, s, received, &rr, last_sent, &terminated, &togo);
                         if (!data.empty())
                         {
                            //fmt::printf( "\ndata=%02x:%02x:%02x:%02x:%02x:%02x\n", data[0], (data+1)[0], (data+2)[0], (data+3)[0], (data+4)[0], (data+5)[0] );
@@ -741,7 +735,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
 
 		    case 17: // Test data
                     {
-                      auto data = ReadStream(conf, flag,  &readRecord, s, received, &rr, last_sent, cc, &terminated, &togo);
+                      auto data = ReadStream(conf, flag, &readRecord, s, received, &rr, last_sent, &terminated, &togo);
                       if (!data.empty())
                       {
                         fmt::print("\n");
@@ -759,7 +753,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
                         fmt::printf( "\n" );
                         while( finished != 1 )
                         {
-                          auto data = ReadStream(conf, flag,  &readRecord, s, received, &rr, last_sent, cc, &terminated, &togo);
+                          auto data = ReadStream(conf, flag, &readRecord, s, received, &rr, last_sent, &terminated, &togo);
                           if (data.empty())
                           {
                             //An Error has occurred
@@ -800,7 +794,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
                           }
                           if( togo == 0 ) 
                             finished=1;
-                          else if( read_bluetooth(conf, flag, &readRecord, s, &rr, received, cc, last_sent, &terminated) != 0 )
+                          else if( read_bluetooth(conf, flag, &readRecord, s, &rr, received, last_sent, &terminated) != 0 )
                           {
                             found=0;
                             /*
@@ -835,7 +829,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
 				break;
 			    case 24: // Inverter data $INVERTERDATA
                             {
-                              auto data = ReadStream(conf, flag,  &readRecord, s, received, &rr, last_sent, cc, &terminated, &togo);
+                              auto data = ReadStream(conf, flag, &readRecord, s, received, &rr, last_sent, &terminated, &togo);
                               if (data.empty())
                                 // An error occurred
                                 break;
@@ -878,7 +872,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
                             }
                     case 28: // extract data $DATA
                     {
-                      auto data = ReadStream(conf, flag, &readRecord, s, received, &rr, last_sent, cc, &terminated, &togo);
+                      auto data = ReadStream(conf, flag, &readRecord, s, received, &rr, last_sent, &terminated, &togo);
                       if (data.empty())
                       {
                         // An Error has occurred

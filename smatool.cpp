@@ -336,7 +336,7 @@ unsigned char conv(const char* nn)
 }
 
 int check_send_error(const FlagType* flag, const int s, int* rr, unsigned char* received, int cc,
-                     const unsigned char* last_sent, int* terminated, int* already_read)
+                     const std::vector<unsigned char>& last_sent, int* terminated, int* already_read)
 {
     int bytes_read,j;
     unsigned char buf[1024]; /*read buffer*/
@@ -401,7 +401,9 @@ int check_send_error(const FlagType* flag, const int s, int* rr, unsigned char* 
            fmt::printf(" rr=%d",(bytes_read+(*rr)));
 	   fmt::printf("\n\n");
         }
-        if ((cc==bytes_read)&&(memcmp(received,last_sent,cc) == 0)){
+        if ((std::size_t)bytes_read == last_sent.size()
+         && std::equal(received, received + cc, begin(last_sent)))
+        {
            fmt::printf( "ERROR received what we sent!" ); getchar();
            //Need to do something
         }
@@ -619,7 +621,7 @@ int empty_read_bluetooth(const FlagType* flag, ReadRecordType* readRecord, const
     return 0;
 }
 int read_bluetooth(const ConfType* conf, const FlagType* flag, ReadRecordType* readRecord, const int s, int* rr,
-                   unsigned char* received, int cc, const unsigned char* last_sent, int* terminated)
+                   unsigned char* received, const std::vector<unsigned char>& last_sent, int* terminated)
 {
     int bytes_read,j, last_decoded;
     unsigned char buf[1024]; /*read buffer*/
@@ -772,7 +774,9 @@ int read_bluetooth(const ConfType* conf, const FlagType* flag, ReadRecordType* r
            
 
  
-        if ((cc==bytes_read)&&(memcmp(received,last_sent,cc) == 0)){
+        if ((std::size_t)bytes_read == last_sent.size()
+         && std::equal(received, received + bytes_read, begin(last_sent)))
+        {
            fmt::printf( "ERROR received what we sent!" ); getchar();
            //Need to do something
         }
@@ -1084,7 +1088,7 @@ static void SetSwitches(const ConfType* conf, FlagType* flag)
 }
 
 std::vector<unsigned char> ReadStream(const ConfType* conf, const FlagType* flag, ReadRecordType* readRecord, const int s,
-                          unsigned char* stream, int* streamlen, const unsigned char* last_sent, int cc,
+                          unsigned char* stream, int* streamlen, const std::vector<unsigned char>& last_sent,
                           int* terminated, int* togo)
 {
    int	finished;
@@ -1113,7 +1117,7 @@ std::vector<unsigned char> ReadStream(const ConfType* conf, const FlagType* flag
      finished_record = 0;
      if( (*terminated) == 0 )
      {
-         if (read_bluetooth(conf, flag, readRecord, s, streamlen, stream, cc, last_sent, terminated) != 0)
+         if (read_bluetooth(conf, flag, readRecord, s, streamlen, stream, last_sent, terminated) != 0)
          {
            data.clear();
          }
