@@ -876,11 +876,11 @@ unsigned char *  get_timezone_in_seconds( FlagType * flag, unsigned char *tzhex 
 }
 
 //Set a value depending on inverter
-void  SetInverterType( ConfType * conf, UnitType ** unit )  
+void SetInverterType(ConfType * conf, UnitType& unit)
 {
     srand(time(NULL));
-    unit[0]->SUSyID[0] = 0xFF;
-    unit[0]->SUSyID[1] = 0xFF;
+    unit.SUSyID[0] = 0xFF;
+    unit.SUSyID[1] = 0xFF;
     conf->MySUSyID[0] = rand()%254;
     conf->MySUSyID[1] = rand()%254;
     conf->MySerial[0] = rand()%254;
@@ -1392,17 +1392,11 @@ int main(int argc, char **argv)
     FILE 		*fp;
     ConfType 		conf;
     FlagType 		flag;
-    int 		maximumUnits=1;
-    UnitType 		*unit;
+    UnitType 		unit;
     unsigned char 	tzhex[2] = { 0 };
     std::vector<ArchDataType> archdata;
     std::vector<LiveDataType> livedata;
 
-    unit=(UnitType *)malloc( sizeof(UnitType) * maximumUnits);
-    if( unit == NULL ) {
-        fmt::printf("Error allocating memory for line buffer.");
-        exit(1);
-    }
     /* get the report time - used in various places */
    
     // set config to defaults
@@ -1426,7 +1420,7 @@ int main(int argc, char **argv)
     conf.returnkeys = InitReturnKeys(&conf);
     // Set value for inverter type
     
-    SetInverterType( &conf, &unit );
+    SetInverterType(&conf, unit);
     // Get Local Timezone offset in seconds
     get_timezone_in_seconds( &flag, tzhex );
     if( flag.verbose == 1 ) fmt::printf( "QUERY RANGE    from %s to %s\n", conf.datefrom, conf.dateto ); 
@@ -1451,24 +1445,24 @@ int main(int argc, char **argv)
     dest_address[0] = conv(strtok(NULL,":"));
 */
 
-    OpenInverter(&conf, &flag, &unit, s, archdata, livedata);
-    InverterCommand("login",               &conf, &flag, &unit, s, fp, archdata, livedata);
-    InverterCommand("typelabel",           &conf, &flag, &unit, s, fp, archdata, livedata);
-    InverterCommand("typelabel",           &conf, &flag, &unit, s, fp, archdata, livedata);
-    InverterCommand("startuptime",         &conf, &flag, &unit, s, fp, archdata, livedata);
-    InverterCommand("getacvoltage",        &conf, &flag, &unit, s, fp, archdata, livedata);
-    InverterCommand("getenergyproduction", &conf, &flag, &unit, s, fp, archdata, livedata);
-    InverterCommand("getspotdcpower",      &conf, &flag, &unit, s, fp, archdata, livedata);
-    InverterCommand("getspotdcvoltage",    &conf, &flag, &unit, s, fp, archdata, livedata);
-    InverterCommand("getspotacpower",      &conf, &flag, &unit, s, fp, archdata, livedata);
-    InverterCommand("getgridfreq",         &conf, &flag, &unit, s, fp, archdata, livedata);
-    InverterCommand("maxACPower",          &conf, &flag, &unit, s, fp, archdata, livedata);
-    InverterCommand("maxACPowerTotal",     &conf, &flag, &unit, s, fp, archdata, livedata);
-    InverterCommand("ACPowerTotal",        &conf, &flag, &unit, s, fp, archdata, livedata);
-    InverterCommand("DeviceStatus",        &conf, &flag, &unit, s, fp, archdata, livedata);
+    OpenInverter(&conf, &flag, unit, s, archdata, livedata);
+    InverterCommand("login",               &conf, &flag, unit, s, fp, archdata, livedata);
+    InverterCommand("typelabel",           &conf, &flag, unit, s, fp, archdata, livedata);
+    InverterCommand("typelabel",           &conf, &flag, unit, s, fp, archdata, livedata);
+    InverterCommand("startuptime",         &conf, &flag, unit, s, fp, archdata, livedata);
+    InverterCommand("getacvoltage",        &conf, &flag, unit, s, fp, archdata, livedata);
+    InverterCommand("getenergyproduction", &conf, &flag, unit, s, fp, archdata, livedata);
+    InverterCommand("getspotdcpower",      &conf, &flag, unit, s, fp, archdata, livedata);
+    InverterCommand("getspotdcvoltage",    &conf, &flag, unit, s, fp, archdata, livedata);
+    InverterCommand("getspotacpower",      &conf, &flag, unit, s, fp, archdata, livedata);
+    InverterCommand("getgridfreq",         &conf, &flag, unit, s, fp, archdata, livedata);
+    InverterCommand("maxACPower",          &conf, &flag, unit, s, fp, archdata, livedata);
+    InverterCommand("maxACPowerTotal",     &conf, &flag, unit, s, fp, archdata, livedata);
+    InverterCommand("ACPowerTotal",        &conf, &flag, unit, s, fp, archdata, livedata);
+    InverterCommand("DeviceStatus",        &conf, &flag, unit, s, fp, archdata, livedata);
     if (flag.daterange)
-      InverterCommand("getrangedata",        &conf, &flag, &unit, s, fp, archdata, livedata);
-    InverterCommand("logoff",              &conf, &flag, &unit, s, fp, archdata, livedata);
+      InverterCommand("getrangedata",        &conf, &flag, unit, s, fp, archdata, livedata);
+    InverterCommand("logoff",              &conf, &flag, unit, s, fp, archdata, livedata);
 
     close(s);
 

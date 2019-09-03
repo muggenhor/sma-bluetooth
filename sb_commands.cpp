@@ -54,11 +54,11 @@ int ConnectSocket(const ConfType* conf)
 /*
  * Update internal running list with live data for later processing
  */
-static int UpdateLiveList(const FlagType* flag, const UnitType* unit, const char* format, time_t idate,
+static int UpdateLiveList(const FlagType* flag, const UnitType& unit, const char* format, time_t idate,
                           const char* description, float fvalue, int ivalue, const char* svalue, const char* units,
                           int persistent, std::vector<LiveDataType>& livedata)
 {
-  if (strlen(unit->Inverter) <= 0)
+  if (strlen(unit.Inverter) <= 0)
   {
     if (flag->debug == 1) fmt::printf("Don't have inverter details yet\n");
     return 1;
@@ -66,8 +66,8 @@ static int UpdateLiveList(const FlagType* flag, const UnitType* unit, const char
 
   LiveDataType data;
   data.date        = idate;
-  strcpy(data.inverter, unit->Inverter);
-  data.serial      = (unit->Serial[0] << 24) + (unit->Serial[1] << 16) + (unit->Serial[2] << 8) + (unit->Serial[3] << 0);
+  strcpy(data.inverter, unit.Inverter);
+  data.serial      = (unit.Serial[0] << 24) + (unit.Serial[1] << 16) + (unit.Serial[2] << 8) + (unit.Serial[3] << 0);
   strcpy(data.Description, description);
   strcpy(data.Units, units);
   if (fvalue >= 0)
@@ -81,7 +81,7 @@ static int UpdateLiveList(const FlagType* flag, const UnitType* unit, const char
   return 0;
 }
 
-static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit, const int s, FILE* fp, int* linenum,
+static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, const int s, FILE* fp, int* linenum,
                           std::vector<ArchDataType>& archdata, std::vector<LiveDataType>& livedata)
 {
    char  *line;
@@ -168,7 +168,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
 
 	   case 3: // $SERIAL
 		for (i=0;i<4;i++){
-	  	    fl[cc] = unit[0]->Serial[i];
+	  	    fl[cc] = unit.Serial[i];
 		    cc++;
 		}
 		break;	
@@ -254,7 +254,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
 
 	    case 3: // $SERIAL
 		for (i=0;i<4;i++){
-		    fl[cc] = unit[0]->Serial[i];
+		    fl[cc] = unit.Serial[i];
 		    cc++;
 		}
 		break;	
@@ -452,7 +452,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
 
 	    case 21: // $SUSyID
                 for( i=0; i<2; i++ ) {
-	            fl[cc] = unit[0]->SUSyID[i];
+	            fl[cc] = unit.SUSyID[i];
 	            cc++;
                 }
                 break;
@@ -667,7 +667,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                 if( return_key >= 0 )
 				{
 				    fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-20s = %.0f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
-				    inverter_serial = (unit[0]->Serial[3]<<24) + (unit[0]->Serial[2]<<16) + (unit[0]->Serial[1]<<8) + (unit[0]->Serial[0]);
+				    inverter_serial = (unit.Serial[3]<<24) + (unit.Serial[2]<<16) + (unit.Serial[1]<<8) + (unit.Serial[0]);
                                 }
                                 else
                                     if( (data+0)[0] > 0 )
@@ -782,9 +782,9 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                             }
                                             ArchDataType adata;
 					    adata.date          = idate;
-                                            strcpy(adata.inverter, unit[0]->Inverter);
-				            adata.serial        = (unit[0]->Serial[0] << 24) + (unit[0]->Serial[1] << 16)
-                                                                + (unit[0]->Serial[2] <<  8) + (unit[0]->Serial[3] <<  0);
+                                            strcpy(adata.inverter, unit.Inverter);
+				            adata.serial        = (unit.Serial[0] << 24) + (unit.Serial[1] << 16)
+                                                                + (unit.Serial[2] <<  8) + (unit.Serial[3] <<  0);
                                             adata.accum_value   = gtotal / 1000;
                                             adata.current_value = (gtotal - ptotal) * 12;
                                             archdata.push_back(std::move(adata));
@@ -825,9 +825,9 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                 }
                                 break;		
 			    case 21: // extract $SUSID
-			        unit[0]->SUSyID[0]=received[24];
-			        unit[0]->SUSyID[1]=received[25];
-				if (flag->debug == 1) fmt::printf("extracting SUSyID=%02x:%02x\n", unit[0]->SUSyID[0], unit[0]->SUSyID[1] );
+			        unit.SUSyID[0]=received[24];
+			        unit.SUSyID[1]=received[25];
+				if (flag->debug == 1) fmt::printf("extracting SUSyID=%02x:%02x\n", unit.SUSyID[0], unit.SUSyID[1] );
 				break;
 			    case 22: // extract time strings $INVCODE
 				conf->NetID=received[22];
@@ -916,7 +916,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                                else
                                                    persistent = conf->returnkeys[return_key].persistent;
 		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.0f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
-                                               UpdateLiveList(flag, unit[0], "%.0f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
+                                               UpdateLiveList(flag, unit, "%.0f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
 					       break;
         				   case 1 :
                                                ConvertStreamtoFloat( data+i+8, datalength, &currentpower_total );
@@ -925,7 +925,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                                else
                                                    persistent = conf->returnkeys[return_key].persistent;
 		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.1f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
-                                               UpdateLiveList(flag, unit[0], "%.1f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
+                                               UpdateLiveList(flag, unit, "%.1f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
 					       break;
         				   case 2 :
                                                ConvertStreamtoFloat( data+i+8, datalength, &currentpower_total );
@@ -934,7 +934,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                                else
                                                    persistent = conf->returnkeys[return_key].persistent;
 		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.2f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
-                                               UpdateLiveList(flag, unit[0], "%.2f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
+                                               UpdateLiveList(flag, unit, "%.2f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
 					       break;
         				   case 3 :
                                                ConvertStreamtoFloat( data+i+8, datalength, &currentpower_total );
@@ -943,7 +943,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                                else
                                                    persistent = conf->returnkeys[return_key].persistent;
 		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.3f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
-                                               UpdateLiveList(flag, unit[0], "%.3f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
+                                               UpdateLiveList(flag, unit, "%.3f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
 					       break;
         				   case 4 :
                                                ConvertStreamtoFloat( data+i+8, datalength, &currentpower_total );
@@ -952,14 +952,14 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                                else
                                                    persistent = conf->returnkeys[return_key].persistent;
 		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %.4f %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, conf->returnkeys[return_key].units );
-                                               UpdateLiveList(flag, unit[0], "%.4f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
+                                               UpdateLiveList(flag, unit, "%.4f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
 					       break;
                                            case 97 :
                                            {
                                                idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second  );
 		       			       fmt::printf("                    %-30s = %d-%02d-%02d %02d:%02d:%02d\n", conf->returnkeys[return_key].description, year, month, day, hour, minute, second );
                                                auto valuebuf = fmt::sprintf("%d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second );
-                                               UpdateLiveList(flag, unit[0], "%s",  idate, conf->returnkeys[return_key].description, -1.0, -1, valuebuf.c_str(), conf->returnkeys[return_key].units, conf->returnkeys[return_key].persistent, livedata);
+                                               UpdateLiveList(flag, unit, "%s",  idate, conf->returnkeys[return_key].description, -1.0, -1, valuebuf.c_str(), conf->returnkeys[return_key].units, conf->returnkeys[return_key].persistent, livedata);
 
                                                break;
                                            }
@@ -969,9 +969,9 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                                ConvertStreamtoInt( data+i+8, 2, &index );
                                                auto datastring = return_sma_description(index);
 		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %s %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, datastring, conf->returnkeys[return_key].units );
-                                               UpdateLiveList(flag, unit[0], "%s",  idate, conf->returnkeys[return_key].description, -1.0, -1, datastring, conf->returnkeys[return_key].units, conf->returnkeys[return_key].persistent, livedata);
+                                               UpdateLiveList(flag, unit, "%s",  idate, conf->returnkeys[return_key].description, -1.0, -1, datastring, conf->returnkeys[return_key].units, conf->returnkeys[return_key].persistent, livedata);
                                                if( (data+i+1)[0]==0x20 && (data+i+2)[0] == 0x82 ) {
-                                                    strcpy(unit[0]->Inverter, datastring);
+                                                    strcpy(unit.Inverter, datastring);
                                                }
 					       break;
                                            }
@@ -980,7 +980,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                                idate=ConvertStreamtoTime( data+i+4, 4, &idate, &day, &month, &year, &hour, &minute, &second  );
                                                auto datastring = ConvertStreamtoString( data+i+8, datalength );
 		       			       fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %s %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, datastring, conf->returnkeys[return_key].units );
-                                               UpdateLiveList(flag, unit[0], "%s",  idate, conf->returnkeys[return_key].description, -1.0, -1, datastring.c_str(), conf->returnkeys[return_key].units, conf->returnkeys[return_key].persistent, livedata);
+                                               UpdateLiveList(flag, unit, "%s",  idate, conf->returnkeys[return_key].description, -1.0, -1, datastring.c_str(), conf->returnkeys[return_key].units, conf->returnkeys[return_key].persistent, livedata);
                                                
 					       break;
                                            }
@@ -1005,17 +1005,18 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
                                 idate=ConvertStreamtoTime( received+59, 4, &idate, &day, &month, &year, &hour, &minute, &second );
                                 if( flag->debug == 1) fmt::printf("Date power = %d/%d/%4d %02d:%02d:%02d\n",day, month, year, hour, minute,second);
 			        if (flag->debug == 1) fmt::printf("extracting SUSyID=%02x:%02x\n", received[33], received[34]);
-                                unit[0]->Serial[3]=received[35];
-                                unit[0]->Serial[2]=received[36];
-                                unit[0]->Serial[1]=received[37];
-                                unit[0]->Serial[0]=received[38];
-			        if (flag->verbose	== 1) fmt::printf( "serial=%02x:%02x:%02x:%02x\n",unit[0]->Serial[3]&0xff,unit[0]->Serial[2]&0xff,unit[0]->Serial[1]&0xff,unit[0]->Serial[0]&0xff );  
+                                unit.Serial[3]=received[35];
+                                unit.Serial[2]=received[36];
+                                unit.Serial[1]=received[37];
+                                unit.Serial[0]=received[38];
+			        if (flag->verbose	== 1) fmt::printf( "serial=%02x:%02x:%02x:%02x\n",unit.Serial[3]&0xff,unit.Serial[2]&0xff,unit.Serial[1]&0xff,unit.Serial[0]&0xff );  
                                     //This is where we poll for other inverters
-				inverter_serial=(unit[0]->Serial[0]<<24)+(unit[0]->Serial[1]<<16)+(unit[0]->Serial[2]<<8)+unit[0]->Serial[3];
-                                sprintf( unit[0]->SerialStr, "%llu", inverter_serial ); 
+                                inverter_serial = (unit.Serial[0] << 24) + (unit.Serial[1] << 16)
+                                                + (unit.Serial[2] <<  8) + (unit.Serial[3] <<  0);
+                                sprintf(unit.SerialStr, "%llu", inverter_serial);
                                 //This is where we poll for other inverters
-                                unit[0]->SUSyID[0]=received[33];
-                                unit[0]->SUSyID[1]=received[34];
+                                unit.SUSyID[0]=received[33];
+                                unit.SUSyID[1]=received[34];
                                 //This is where we poll for other inverters
 			        break;
                     }
@@ -1031,7 +1032,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
  * Run a command on an inverter
  *
  */
-void InverterCommand(const char* command, ConfType* conf, const FlagType* flag, UnitType** unit, const int s, FILE* fp,
+void InverterCommand(const char* command, ConfType* conf, const FlagType* flag, UnitType& unit, const int s, FILE* fp,
                      std::vector<ArchDataType>& archdata, std::vector<LiveDataType>& livedata)
 {
     int linenum;
@@ -1050,7 +1051,7 @@ void InverterCommand(const char* command, ConfType* conf, const FlagType* flag, 
     }    
 }
 
-int OpenInverter(ConfType* conf, const FlagType* flag, UnitType** unit, const int s, std::vector<ArchDataType>& archdata,
+int OpenInverter(ConfType* conf, const FlagType* flag, UnitType& unit, const int s, std::vector<ArchDataType>& archdata,
                  std::vector<LiveDataType>& livedata)
 {
     FILE * fp;
