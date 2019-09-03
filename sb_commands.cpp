@@ -985,15 +985,6 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType** unit,
 					       break;
                                            }
       				           }
-#if 0
-                                           if (flag->debug)
-                                           {
-                                             for (const auto& data: livedata)
-                                             {
-                                               fmt::printf("INSERT INTO LiveData ( DateTime, Inverter, Serial, Description, Value, Units ) VALUES ( \'%s\', \'%s\', %lld, \'%s\', \'%s\', \'%s\'  ) ON DUPLICATE KEY UPDATE DateTime=Datetime, Inverter=VALUES(Inverter), Serial=VALUES(Serial), Description=VALUES(Description), Description=VALUES(Description), Value=VALUES(Value), Units=VALUES(Units)\n", debugdate(), data.inverter, data.serial, data.Description, data.Value, data.Units);
-                                             }
-                                           }
-#endif
                                        }
                                        else
                                        {

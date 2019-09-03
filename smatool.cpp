@@ -1483,6 +1483,11 @@ int main(int argc, char **argv)
 #if 0
     if (flag.debug == 1)
     {
+      for (const auto& data: livedata)
+      {
+        fmt::printf("INSERT INTO LiveData ( DateTime, Inverter, Serial, Description, Value, Units ) VALUES ( \'%s\', \'%s\', %lld, \'%s\', \'%s\', \'%s\'  ) ON DUPLICATE KEY UPDATE DateTime=Datetime, Inverter=VALUES(Inverter), Serial=VALUES(Serial), Description=VALUES(Description), Description=VALUES(Description), Value=VALUES(Value), Units=VALUES(Units)\n", debugdate(), data.inverter, data.serial, data.Description, data.Value, data.Units);
+      }
+
       bool first = true;
       for (const auto& data : archdata)
       {
