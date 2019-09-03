@@ -914,7 +914,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
                         if (return_key < 0)
                         {
                           if (data[0] > 0)
-                            fmt::printf("%d-%02d-%02d %02d:%02d:%02d NO DATA for %02x %02x = %.0f NO UNITS\n", year, month, day, hour, minute, second, data[i + 1], data[i + 2], currentpower_total );
+                            fmt::printf("%d-%02d-%02d %02d:%02d:%02d NO DATA for %02x %02x NO UNITS\n", year, month, day, hour, minute, second, data[i + 1], data[i + 2]);
                           break;
                         }
                         switch (conf->returnkeys[return_key].decimal)
