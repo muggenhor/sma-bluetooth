@@ -625,7 +625,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
 		    switch(select_str(lineread)) {
                                 
 		    case 9: // extract Time from Inverter
-                        idate=ConvertStreamtoTime( received+66, 4, &idate, &day, &month, &year, &hour, &minute, &second );
+                        idate = ConvertStreamtoTime(received + 66, 4, &day, &month, &year, &hour, &minute, &second);
 			fmt::printf("Date power = %d/%d/%4d %02d:%02d:%02d\n",day, month, year, hour, minute,second);
 			//currentpower = (received[72] * 256) + received[71];
 			//fmt::printf("Current power = %i Watt\n",currentpower);
@@ -648,8 +648,8 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
                             }
                             for (std::size_t i = 0; i < data.size(); i += gap)
                             {
-                                idate = ConvertStreamtoTime(&data[i + 4], 4, &idate, &day, &month, &year, &hour, &minute, &second);
-                                ConvertStreamtoFloat(&data[i + 8], 3, &currentpower_total);
+                                idate = ConvertStreamtoTime(&data[i + 4], 4, &day, &month, &year, &hour, &minute, &second);
+                                currentpower_total = ConvertStreamtoFloat(&data[i + 8], 3);
                                 return_key=-1;
                                 for (unsigned int j = 0; j < conf->returnkeys.size(); j++)
                                 {
@@ -703,7 +703,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
 			    memcpy(timestr,received+63,24);
 			    if (flag->debug == 1) fmt::printf("extracting timestring\n");
                             memcpy(timeset,received+79,4);
-                            idate=ConvertStreamtoTime( received+63,4, &idate, &day, &month, &year, &hour, &minute, &second  );
+                            idate = ConvertStreamtoTime(received + 63, 4, &day, &month, &year, &hour, &minute, &second);
                             /* Allow delay for inverter to be slow */
                             if( reporttime > idate ) {
                                 if( flag->debug == 1 )
@@ -768,11 +768,11 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
                             if( j > 11 ) {
                               if( idate > 0 ) prev_idate=idate;
                               else prev_idate=0;
-                              idate=ConvertStreamtoTime( datarecord, 4, &idate, &day, &month, &year, &hour, &minute, &second  );
+                              idate = ConvertStreamtoTime(datarecord, 4, &day, &month, &year, &hour, &minute, &second);
                               if( prev_idate == 0 )
                                 prev_idate = idate-300;
 
-                              ConvertStreamtoFloat( datarecord+4, 8, &gtotal );
+                              gtotal = ConvertStreamtoFloat(datarecord + 4, 8);
                               if (archdata.empty())
                                 ptotal = gtotal;
                               fmt::printf("\n%d/%d/%4d %02d:%02d:%02d  total=%.3f Kwh current=%.0f Watts togo=%d i=%d", day, month, year, hour, minute,second, gtotal/1000, (gtotal-ptotal)*12, togo, i);
@@ -847,8 +847,8 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
                               }
                               for (std::size_t i = 0; i < data.size(); i += gap)
                               {
-                                 idate = ConvertStreamtoTime(&data[i + 4], 4, &idate, &day, &month, &year, &hour, &minute, &second);
-                                 ConvertStreamtoFloat(&data[i + 8], 3, &currentpower_total );
+                                 idate = ConvertStreamtoTime(&data[i + 4], 4, &day, &month, &year, &hour, &minute, &second);
+                                 currentpower_total = ConvertStreamtoFloat(&data[i + 8], 3);
                                  return_key=-1;
                                  for (unsigned int j = 0; j < conf->returnkeys.size(); j++)
                                  {
@@ -900,7 +900,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
 
                       for (std::size_t i = 0; i < data.size(); i += gap)
                       {
-                        idate = ConvertStreamtoTime(&data[i + 4], 4, &idate, &day, &month, &year, &hour, &minute, &second);
+                        idate = ConvertStreamtoTime(&data[i + 4], 4, &day, &month, &year, &hour, &minute, &second);
                         return_key=-1;
                         for (unsigned int j = 0; j < conf->returnkeys.size(); j++)
                         {
@@ -920,7 +920,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
                         switch (conf->returnkeys[return_key].decimal)
                         {
                           case 0 :
-                            ConvertStreamtoFloat(&data[i + 8], datalength, &currentpower_total );
+                            currentpower_total = ConvertStreamtoFloat(&data[i + 8], datalength);
                             if( currentpower_total == 0 )
                               persistent=1;
                             else
@@ -929,7 +929,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
                             UpdateLiveList(flag, unit, "%.0f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
                             break;
                           case 1 :
-                            ConvertStreamtoFloat(&data[i + 8], datalength, &currentpower_total );
+                            currentpower_total = ConvertStreamtoFloat(&data[i + 8], datalength);
                             if( currentpower_total == 0 )
                               persistent=1;
                             else
@@ -938,7 +938,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
                             UpdateLiveList(flag, unit, "%.1f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
                             break;
                           case 2 :
-                            ConvertStreamtoFloat(&data[i + 8], datalength, &currentpower_total );
+                            currentpower_total = ConvertStreamtoFloat(&data[i + 8], datalength);
                             if( currentpower_total == 0 )
                               persistent=1;
                             else
@@ -947,7 +947,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
                             UpdateLiveList(flag, unit, "%.2f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
                             break;
                           case 3 :
-                            ConvertStreamtoFloat(&data[i + 8], datalength, &currentpower_total );
+                            currentpower_total = ConvertStreamtoFloat(&data[i + 8], datalength);
                             if( currentpower_total == 0 )
                               persistent=1;
                             else
@@ -956,7 +956,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
                             UpdateLiveList(flag, unit, "%.3f",  idate, conf->returnkeys[return_key].description, currentpower_total/conf->returnkeys[return_key].divisor, -1, (char *)NULL, conf->returnkeys[return_key].units, persistent, livedata);
                             break;
                           case 4 :
-                            ConvertStreamtoFloat(&data[i + 8], datalength, &currentpower_total );
+                            currentpower_total = ConvertStreamtoFloat(&data[i + 8], datalength);
                             if( currentpower_total == 0 )
                               persistent=1;
                             else
@@ -966,7 +966,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
                             break;
                           case 97 :
                             {
-                              idate=ConvertStreamtoTime(&data[i + 4], 4, &idate, &day, &month, &year, &hour, &minute, &second  );
+                              idate = ConvertStreamtoTime(&data[i + 4], 4, &day, &month, &year, &hour, &minute, &second);
                               fmt::printf("                    %-30s = %d-%02d-%02d %02d:%02d:%02d\n", conf->returnkeys[return_key].description, year, month, day, hour, minute, second );
                               auto valuebuf = fmt::sprintf("%d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second );
                               UpdateLiveList(flag, unit, "%s",  idate, conf->returnkeys[return_key].description, -1.0, -1, valuebuf.c_str(), conf->returnkeys[return_key].units, conf->returnkeys[return_key].persistent, livedata);
@@ -975,8 +975,8 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
                             }
                           case 98 :
                             {
-                              idate=ConvertStreamtoTime(&data[i + 4], 4, &idate, &day, &month, &year, &hour, &minute, &second  );
-                              ConvertStreamtoInt(&data[i + 8], 2, &index );
+                              idate = ConvertStreamtoTime(&data[i + 4], 4, &day, &month, &year, &hour, &minute, &second);
+                              index = ConvertStreamtoInt(&data[i + 8], 2);
                               auto datastring = return_sma_description(index);
                               fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %s %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, datastring, conf->returnkeys[return_key].units );
                               UpdateLiveList(flag, unit, "%s",  idate, conf->returnkeys[return_key].description, -1.0, -1, datastring, conf->returnkeys[return_key].units, conf->returnkeys[return_key].persistent, livedata);
@@ -989,7 +989,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
                             }
                           case 99 :
                             {
-                              idate=ConvertStreamtoTime(&data[i + 4], 4, &idate, &day, &month, &year, &hour, &minute, &second  );
+                              idate = ConvertStreamtoTime(&data[i + 4], 4, &day, &month, &year, &hour, &minute, &second);
                               auto datastring = ConvertStreamtoString(&data[i + 8], datalength);
                               fmt::printf("%d-%02d-%02d %02d:%02d:%02d %-30s = %s %-20s\n", year, month, day, hour, minute, second, conf->returnkeys[return_key].description, datastring, conf->returnkeys[return_key].units );
                               UpdateLiveList(flag, unit, "%s",  idate, conf->returnkeys[return_key].description, -1.0, -1, datastring.c_str(), conf->returnkeys[return_key].units, conf->returnkeys[return_key].persistent, livedata);
@@ -1001,7 +1001,7 @@ static int ProcessCommand(ConfType* conf, const FlagType* flag, UnitType& unit, 
                       break;
                     }
 			    case 31: // LOGIN Data
-                                idate=ConvertStreamtoTime( received+59, 4, &idate, &day, &month, &year, &hour, &minute, &second );
+                                idate = ConvertStreamtoTime(received + 59, 4, &day, &month, &year, &hour, &minute, &second);
                                 if( flag->debug == 1) fmt::printf("Date power = %d/%d/%4d %02d:%02d:%02d\n",day, month, year, hour, minute,second);
 			        if (flag->debug == 1) fmt::printf("extracting SUSyID=%02x:%02x\n", received[33], received[34]);
                                 unit.Serial[3]=received[35];

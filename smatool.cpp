@@ -894,45 +894,24 @@ void SetInverterType(ConfType * conf, UnitType& unit)
 }
 
 //Convert a recieved string to a value
-long ConvertStreamtoLong( unsigned char * stream, int length, unsigned long long  * value )
+float ConvertStreamtoFloat(const unsigned char * stream, int length)
 {
-   int	i, nullvalue;
-   
-   (*value) = 0;
-   nullvalue = 1;
+   float value = 0.f;
+   bool nullvalue = true;
 
-   for( i=0; i < length; i++ ) 
+   for (int i = 0; i < length; ++i)
    {
       if( stream[i] != 0xff ) //check if all ffs which is a null value 
-        nullvalue = 0;
-      (*value) = (*value) + stream[i]*pow(256,i);
+        nullvalue = false;
+      value += stream[i] * pow(256, i);
    }
-   if( nullvalue == 1 )
-      (*value) = 0; //Asigning null to 0 at this stage unless it breaks something
-   return (*value);
+   if (nullvalue)
+      return 0.f; //Asigning null to 0 at this stage unless it breaks something
+   return value;
 }
 
 //Convert a recieved string to a value
-float ConvertStreamtoFloat( unsigned char * stream, int length, float * value )
-{
-   int	i, nullvalue;
-   
-   (*value) = 0;
-   nullvalue = 1;
-
-   for( i=0; i < length; i++ ) 
-   {
-      if( stream[i] != 0xff ) //check if all ffs which is a null value 
-        nullvalue = 0;
-      (*value) = (*value) + stream[i]*pow(256,i);
-   }
-   if( nullvalue == 1 )
-      (*value) = 0; //Asigning null to 0 at this stage unless it breaks something
-   return (*value);
-}
-
-//Convert a recieved string to a value
-std::string ConvertStreamtoString(unsigned char * stream, int length )
+std::string ConvertStreamtoString(const unsigned char* stream, int length)
 {
    int	i, j=0, nullvalue;
    std::string value;
@@ -1022,46 +1001,41 @@ static std::vector<ReturnType> InitReturnKeys(ConfType * conf)
 }
 
 //Convert a recieved string to a value
-int ConvertStreamtoInt(const unsigned char* stream, int length, int* value)
+int ConvertStreamtoInt(const unsigned char* stream, int length)
 {
-   int	i, nullvalue;
-   
-   (*value) = 0;
-   nullvalue = 1;
+   int value = 0;
+   bool nullvalue = true;
 
-   for( i=0; i < length; i++ ) 
+   for (int i = 0; i < length; ++i)
    {
       if( stream[i] != 0xff ) //check if all ffs which is a null value 
-        nullvalue = 0;
-      (*value) = (*value) + stream[i]*pow(256,i);
+        nullvalue = false;
+      value += stream[i] << (8 * i);
    }
-   if( nullvalue == 1 )
-      (*value) = 0; //Asigning null to 0 at this stage unless it breaks something
-   return (*value);
+   if (nullvalue)
+      return 0; //Asigning null to 0 at this stage unless it breaks something
+   return value;
 }
 
 //Convert a recieved string to a value
-time_t ConvertStreamtoTime(const unsigned char* stream, int length, time_t* value, int* day, int* month, int* year,
+time_t ConvertStreamtoTime(const unsigned char* stream, int length, int* day, int* month, int* year,
                            int* hour, int* minute, int* second)
 {
-   int	i, nullvalue;
-   struct tm *loctime;
-   
-   (*value) = 0;
-   nullvalue = 1;
+   time_t value = 0;
+   bool nullvalue = true;
 
-   for( i=0; i < length; i++ ) 
+   for (int i = 0; i < length; ++i) 
    {
       if( stream[i] != 0xff ) //check if all ffs which is a null value 
-        nullvalue = 0;
-      (*value) = (*value) + stream[i]*pow(256,i);
+        nullvalue = false;
+      value += (time_t)stream[i] << (8 * i);
    }
-   if( nullvalue == 1 )
-      (*value) = 0; //Asigning null to 0 at this stage unless it breaks something
+   if (nullvalue)
+      return 0; //Asigning null to 0 at this stage unless it breaks something
    else
    {
       //Get human readable dates
-      loctime = localtime(value);
+      auto loctime = localtime(&value);
       (*day) = loctime->tm_mday;
       (*month) = loctime->tm_mon +1;
       (*year) = loctime->tm_year + 1900;
@@ -1069,7 +1043,7 @@ time_t ConvertStreamtoTime(const unsigned char* stream, int length, time_t* valu
       (*minute) = loctime->tm_min; 
       (*second) = loctime->tm_sec; 
    }
-   return (*value);
+   return value;
 }
 
 // Set switches to save lots of strcmps
@@ -1095,7 +1069,7 @@ std::vector<unsigned char> ReadStream(const ConfType* conf, const FlagType* flag
    int	finished_record;
    int  i;
 
-   (*togo)=ConvertStreamtoInt( stream+43, 2, togo );
+   (*togo) = ConvertStreamtoInt(stream + 43, 2);
    if( flag->debug==1 ) fmt::printf( "togo=%d\n", (*togo) );
    i=59; //Initial position of data stream
    std::vector<unsigned char> data;

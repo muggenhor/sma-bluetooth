@@ -1,6 +1,6 @@
 ARCH := $(shell getconf LONG_BIT)
 CPPFLAGS := -DFMT_HEADER_ONLY=1 -DFMT_STRING_ALIAS=1
-CXXFLAGS := -std=c++14 -fstack-protector-all -g3 -O3 -Wall -Wextra -Werror -Wno-unused-result
+CXXFLAGS := -std=c++11 -fstack-protector-all -g3 -O3 -Wall -Wextra -Werror -Wno-unused-result
 
 all: smatool
 
