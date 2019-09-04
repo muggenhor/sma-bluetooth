@@ -1053,13 +1053,9 @@ void InverterCommand(const char* command, ConfType* conf, const FlagType* flag, 
 int OpenInverter(ConfType* conf, const FlagType* flag, UnitType& unit, const int s, std::vector<ArchDataType>& archdata,
                  std::vector<LiveDataType>& livedata)
 {
-    FILE * fp;
-
-    if (flag->file ==1)
-        fp=fopen(conf->File,"r");
-    else
-        fp=fopen("/etc/sma.in","r");
-    if( fp == NULL ) {
+    auto fp = fopen(conf->File,"r");
+    if (!fp)
+    {
         //Can't open file
         perror( "Can't open conf file" );
         return -1;

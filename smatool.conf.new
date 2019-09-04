@@ -14,4 +14,4 @@ Password
 # Config file (optional) defaults to ./smatool.conf
 Config
 # String file (compulsory) data strings to drive the system
-File		./sma.in.new
+File		sma.in

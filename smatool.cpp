@@ -1046,10 +1046,6 @@ time_t ConvertStreamtoTime(const unsigned char* stream, int length, int* day, in
 static void SetSwitches(const ConfType* conf, FlagType* flag)
 {
     //Check if all File variables are set
-    if( strlen(conf->File) > 0 )
-        flag->file=1;
-    else
-        flag->file=0;
     if(( strlen(conf->datefrom) > 0 )
 	 &&( strlen(conf->dateto) > 0 ))
         flag->daterange=1;
@@ -1114,7 +1110,7 @@ static void InitConfig(ConfType* conf)
     strcpy( conf->BTAddress, "" );  
     conf->bt_timeout = 30;  
     strcpy( conf->Password, "0000" );  
-    strcpy( conf->File, "sma.in" );  
+    strcpy(conf->File, "/etc/sma.in");
     strcpy( conf->datefrom, "" );  
     strcpy( conf->dateto, "" );  
 }
@@ -1126,7 +1122,6 @@ static void InitFlag(FlagType* flag)
     flag->verbose=0;       /* verbose flag */
     flag->daterange=0;     /* is system using a daterange */
     flag->test=0;     /* is system using a daterange */
-    flag->file=0;     /* is system using a daterange */
 }
 
 /* read Config from file */
@@ -1158,7 +1153,22 @@ static int GetConfig(ConfType* conf, const FlagType* flag)
                     if( strcmp( variable, "Password" ) == 0 )
                        strcpy( conf->Password, value );  
                     if( strcmp( variable, "File" ) == 0 )
-                       strcpy( conf->File, value );  
+                    {
+                      if (value[0] == '/')
+                      {
+                        conf->File[0] = '\0';
+                      }
+                      else
+                      {
+                        // Make relative paths relative to the config file's directory
+                        strcpy(conf->File, conf->Config);
+                        if (auto sep = strrchr(conf->File, '/'))
+                        {
+                          sep[1] = '\0';
+                        }
+                      }
+                      strcat(conf->File, value);
+                    }
                 }
             }
         }
@@ -1348,7 +1358,6 @@ std::string debugdate()
 
 int main(int argc, char **argv)
 {
-    FILE 		*fp;
     ConfType 		conf;
     FlagType 		flag;
     UnitType 		unit;
@@ -1389,10 +1398,7 @@ int main(int argc, char **argv)
     if (s == -1)
        exit(-1);
 
-    if (flag.file ==1)
-      fp=fopen(conf.File,"r");
-    else
-      fp=fopen("/etc/sma.in","r");
+    auto fp = fopen(conf.File,"r");
 
     // convert address
 /*

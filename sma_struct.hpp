@@ -73,7 +73,6 @@ typedef struct{
     unsigned int verbose;       /* verbose flag */
     unsigned int daterange;     /* is system using a daterange */
     unsigned int test;     /* is system using a daterange */
-    unsigned int file;     /* is system using a daterange */
 } FlagType;
 
 typedef struct{
