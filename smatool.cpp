@@ -27,8 +27,6 @@
 #include <unistd.h>
 #include <utility>
 #include <sys/socket.h>
-#include <bluetooth/bluetooth.h>
-#include <bluetooth/rfcomm.h>
 #include <errno.h>
 #include <string.h>
 #include <math.h>
@@ -1112,7 +1110,7 @@ std::vector<unsigned char> ReadStream(const ConfType* conf, const FlagType* flag
 /* Init Config to default values */
 static void InitConfig(ConfType* conf)
 {
-    strcpy( conf->Config,"./smatool.conf");
+    strcpy(conf->Config, "/etc/smatool.conf");
     strcpy( conf->BTAddress, "" );  
     conf->bt_timeout = 30;  
     strcpy( conf->Password, "0000" );  
@@ -1134,27 +1132,16 @@ static void InitFlag(FlagType* flag)
 /* read Config from file */
 static int GetConfig(ConfType* conf, const FlagType* flag)
 {
-    FILE 	*fp;
     char	line[400];
     char	variable[400];
     char	value[400];
 
-    if (strlen(conf->Config) > 0 )
-    {
-        if(( fp=fopen(conf->Config,"r")) == (FILE *)NULL )
-        {
-           fmt::printf( "Error! Could not open file %s\n", conf->Config );
-           return( -1 ); //Could not open file
-        }
-    }
-    else
-    {
-        if(( fp=fopen("./smatool.conf","r")) == (FILE *)NULL )
-        {
-           fmt::printf( "Error! Could not open file ./smatool.conf\n" );
-           return( -1 ); //Could not open file
-        }
-    }
+  auto fp = fopen(conf->Config, "r");
+  if (!fp)
+  {
+    fmt::printf("Error! Could not open file %s\n", conf->Config);
+    return -1; // Could not open file
+  }
     while (!feof(fp)){	
 	if (fgets(line,400,fp) != NULL){				//read line from smatool.conf
             if( line[0] != '#' ) 
