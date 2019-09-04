@@ -19,6 +19,9 @@
 
 #define _XOPEN_SOURCE 700 /* glibc needs this */
 #include <algorithm>
+#include <cctype>
+#include <cmath>
+#include <map>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -1434,6 +1437,52 @@ int main(int argc, char **argv)
     InverterCommand("logoff",              &conf, &flag, unit, s, fp, archdata, livedata);
 
     close(s);
+
+    auto instance = archdata.empty() ? "" : "{}-{}"_format(archdata.back().inverter, archdata.back().serial);
+    instance.erase(std::remove(begin(instance), end(instance), ' '), end(instance));
+    std::transform(begin(instance), end(instance), begin(instance), [] (unsigned char i) {
+        return std::tolower(i);
+      });
+
+    float prev_value = -1.f, prev_total = -1.f;
+    time_t prev_skipped_zero_date = 0;
+    for (const auto& data : archdata)
+    {
+      if  (!(0 <= prev_value && prev_value < 0.5f
+          && 0 <= data.current_value && data.current_value < 0.5f))
+      {
+        // don't just keep the first zero-power value, keep the last one as well (to ensure mean(value) gives correct results there)
+        if (prev_skipped_zero_date)
+        {
+          fmt::print("kW,domain=sensor,type=sma-bluetooth,entity_id=power_production,instance={instance}        value={current:0.3f} {date}000000000\n"
+            , "instance"_a=instance
+            , "current"_a=0.f
+            , "date"_a=prev_skipped_zero_date
+            );
+          prev_skipped_zero_date = 0;
+        }
+
+        fmt::print("kW,domain=sensor,type=sma-bluetooth,entity_id=power_production,instance={instance}        value={current:0.3f} {date}000000000\n"
+          , "instance"_a=instance
+          , "current"_a=data.current_value / 1000.f
+          , "date"_a=data.date
+          );
+        prev_value = data.current_value;
+      }
+      else
+      {
+        prev_skipped_zero_date = data.date;
+      }
+      if (data.accum_value - prev_total >= 0.0005f)
+      {
+        fmt::print("kWh,domain=sensor,type=sma-bluetooth,entity_id=power_production_total,instance={instance} value={total:0.3f} {date}000000000\n"
+          , "instance"_a=instance
+          , "total"_a=data.accum_value
+          , "date"_a=data.date
+          );
+        prev_total = data.accum_value;
+      }
+    }
 
 #if 0
     if (flag.debug == 1)

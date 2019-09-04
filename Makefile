@@ -10,8 +10,8 @@ smatool: smatool.o sb_commands.o
 %.o: %.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
-smatool.o: smatool.cpp sma_map.ipp
-sb_commands.o: sb_commands.cpp
+smatool.o: smatool.cpp sma_map.ipp smatool.hpp sb_commands.hpp
+sb_commands.o: sb_commands.cpp sb_commands.hpp smatool.hpp
 
 clean:
 	rm -f *.o
