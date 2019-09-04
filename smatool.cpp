@@ -913,24 +913,19 @@ float ConvertStreamtoFloat(const unsigned char * stream, int length)
 //Convert a recieved string to a value
 std::string ConvertStreamtoString(const unsigned char* stream, int length)
 {
-   int	i, j=0, nullvalue;
-   std::string value;
-   
-   nullvalue = 1;
+   bool nullvalue = true;
 
-   value.reserve(10);
-   for( i=0; i < length; i++ ) 
+   std::string value;
+   value.reserve(length);
+   for (int i = 0; i < length; ++i)
    {
-      if( i%10 > j ) {
-            j++;
-      }
       if( stream[i] != 0xff ) //check if all ffs which is a null value 
-        nullvalue = 0;
+        nullvalue = false;
       if( stream[i] != 0 ) {
         value.push_back(stream[i]);
       }
    }
-   if( nullvalue == 1 )
+   if (nullvalue)
       value.clear(); //Asigning empty at this stage unless it breaks something
    return value;
 }
