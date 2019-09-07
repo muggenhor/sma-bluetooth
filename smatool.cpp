@@ -1166,6 +1166,11 @@ static int GetConfig(ConfType* conf, const FlagType* flag)
                         {
                           sep[1] = '\0';
                         }
+                        else
+                        {
+                          // config file is loaded from the current working directory, do the same for this one
+                          conf->File[0] = '\0';
+                        }
                       }
                       strcat(conf->File, value);
                     }
